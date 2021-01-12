@@ -14,15 +14,17 @@ from within_conus import check_coords
 from get_file_paths import get_shakemap_dir
 
 
+
 ## uncomment these when inside a FEMA network
 #os.environ["HTTP_PROXY"] = "http://proxy.apps.dhs.gov:80"
 #os.environ["HTTPS_PROXY"] = "http://proxy.apps.dhs.gov:80"
 
 
 
-def main(mmi_threshold = 3):
+def check_for_shakemaps(mmi_threshold = 3):
 
     FilePath = get_shakemap_dir()
+    new_shakemap_folders = []
 
     # Create variables
     pnt = arcpy.Point()
@@ -37,7 +39,6 @@ def main(mmi_threshold = 3):
     fh.close()
     jdict = json.loads(data) #Parse that data using the stdlib json module.  This turns into a Python dictionary.
 
-    #arcpy.AddMessage('Running 2')
 
     # Create list of files in current folder
     FileList = os.listdir(FilePath)
@@ -163,6 +164,7 @@ def main(mmi_threshold = 3):
 
             filelist = os.listdir(eventdir)
             print('Extracted {} ShakeMap files to {}'.format(len(filelist),eventdir))
+            new_shakemap_folders.append(eventdir)
 
         else:
 
@@ -267,7 +269,7 @@ def main(mmi_threshold = 3):
 
                 filecount = [f for f in os.listdir(eventdir) if os.path.isfile(os.path.join(eventdir, f))]
                 print('Successfully downloaded {} ShakeMap files to {}'.format(len(filecount),eventdir))
-
+                new_shakemap_folders.append(eventdir)
 
             else:
 
@@ -275,8 +277,8 @@ def main(mmi_threshold = 3):
 
     print("Completed.")
 
-    return
+    return new_shakemap_folders
 
 if __name__ == "__main__":
-    main()
+    check_for_shakemaps()
 

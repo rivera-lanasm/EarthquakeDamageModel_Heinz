@@ -1,16 +1,19 @@
 # Import arcpy module
 import arcpy
 import os
+from get_file_paths import get_shakemap_dir
+from get_shakemap_files import get_shakemap_files
 
 arcpy.env.overwriteOutput = True
 
 ## Local variables:
 
 #ShakeMap GIS File Folder
-ShakeMapDir  = os.path.join(os.path.dirname(os.getcwd()), 'ShakeMaps')
-mi = "{}\mi.shp".format(ShakeMapDir)
-pgv = "{}\pgv.shp".format(ShakeMapDir)
-pga = "{}\pga.shp".format(ShakeMapDir)
+ShakeMapDir  = get_shakemap_dir()
+mi, pgv, pga = get_shakemap_files(ShakeMapDir)
+# mi = "{}\mi.shp".format(ShakeMapDir)
+# pgv = "{}\pgv.shp".format(ShakeMapDir)
+# pga = "{}\pga.shp".format(ShakeMapDir)
 
 #Census Geographies
 #Blocks = #filepath
