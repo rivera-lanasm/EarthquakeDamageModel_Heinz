@@ -193,14 +193,21 @@ def check_for_shakemaps(mmi_threshold = 3):
                 list_subfolders = [f.name for f in os.scandir(eventdir) if f.is_dir()]
                 olddate = datetime.datetime.fromtimestamp(int(oldupdated[:-3])).strftime('%Y%m%d')
                 archive_folder_name = "archive_{}".format(olddate)
+                archive_zip_name = archive_folder_name + ".zip"
 
-                if not archive_folder_name in list_subfolders:
+                if not archive_zip_name in list_subfolders:
                     # copy all old files to new archive folder
-                    os.mkdir(os.path.join(eventdir, archive_folder_name))
+                    archive_zip_fullpath = os.path.join(eventdir, archive_zip_name)
+                    #os.mkdir(os.path.join(eventdir, archive_folder_name))
                     files_to_move = [f for f in os.listdir(eventdir) if os.path.isfile(os.path.join(eventdir, f))]
                     files_to_move.remove('eventInfo.txt')
-                    for f in files_to_move:
-                        shutil.move(os.path.join(eventdir, f), os.path.join(eventdir, archive_folder_name))
+                    # for f in files_to_move:
+                    #     shutil.move(os.path.join(eventdir, f), os.path.join(eventdir, archive_folder_name))
+                    with zipfile.ZipFile(archive_zip_fullpath, 'w') as zip:
+                        for file in files_to_move:
+                            zip.write(os.path.join(eventdir, file))
+                    for filename in files_to_move:
+                        os.remove(os.path.join(eventdir, filename))
 
                 else:
                     # delete all old files if they have already been moved to archive folder
