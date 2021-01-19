@@ -58,16 +58,16 @@ def check_for_shakemaps(mmi_threshold = 3):
         fh.close()
         jdict2 = json.loads(data) #and parse using json module as before
         if jdict2['properties']['mag'] < mmi_threshold:
-            print('skipping {}: mag < {}'.format(eventid, mmi_threshold))
+            print('\nSkipping {}: mag < {}'.format(eventid, mmi_threshold))
             continue
         if not 'shakemap' in jdict2['properties']['products'].keys():
-            print('skipping {}: no shakemap available'.format(eventid))
+            print('\nSkipping {}: no shakemap available'.format(eventid))
             continue
 
         longlat = jdict2['geometry']['coordinates'][0:2]
         F = check_coords(longlat[1], longlat[0])
         if not F:
-            print('skipping {}: epicenter not in conus'.format(eventid))
+            print('\nSkipping {}: epicenter not in conus'.format(eventid))
             continue
 
         shakemap = jdict2['properties']['products']['shakemap'][0] #get the first shakemap associated with the event
@@ -75,7 +75,7 @@ def check_for_shakemaps(mmi_threshold = 3):
         try:
             epicenterurl = shakemap['contents']['download/epicenter.kmz']['url']
         except:
-            print('skipping {}: no epicenter available'.format(eventid))
+            print('\nSkipping {}: no epicenter available'.format(eventid))
             continue
 
 
@@ -94,7 +94,7 @@ def check_for_shakemaps(mmi_threshold = 3):
         # Creates a new folder (called the eventid) if it does not already exist
         if not os.path.isdir(eventdir):
             os.mkdir(eventdir)
-            print("New EventID: {}".format(eventid))
+            print("\nNew EventID: {}".format(eventid))
 
             #Create a StringIO object, which behaves like a file
             stringbuf = io.BytesIO(data)
@@ -128,7 +128,7 @@ def check_for_shakemaps(mmi_threshold = 3):
             f.close()
 
             COMBO = (title,mag,time,place,depth,url,eventid)
-            print('new event successfully downloaded: \n', COMBO)
+            print('New event successfully downloaded: \n', COMBO)
 
             # Update empty point with epicenter lat/long
             pnt.X = epiX
@@ -216,7 +216,7 @@ def check_for_shakemaps(mmi_threshold = 3):
                     for filename in files_to_delete:
                         os.remove(os.path.join(eventdir, filename))
 
-                print("Previously downloaded ShakeMap files for {} have been archived.".format(eventid))
+                print("\nPreviously downloaded ShakeMap files for {} have been archived.".format(eventid))
 
                 stringbuf = io.BytesIO(data)
                 myzip = zipfile.ZipFile(stringbuf,'r',zipfile.ZIP_DEFLATED)
@@ -243,7 +243,7 @@ def check_for_shakemaps(mmi_threshold = 3):
                 f.close()
 
                 COMBO = (title,mag,time,place,depth,url,eventid)
-                print('updated event successfully downloaded: \n', COMBO)
+                print('Updated event successfully downloaded: \n', COMBO)
 
                 # Update empty point with epicenter lat/long
                 pnt.X = epiX
@@ -280,9 +280,9 @@ def check_for_shakemaps(mmi_threshold = 3):
 
             else:
 
-                print("ShakeMap files for {} already exist and have not been updated.".format(eventid))
+                print("\nShakeMap files for {} already exist and have not been updated.".format(eventid))
 
-    print("Completed.")
+    print("\nCompleted.")
 
     return new_shakemap_folders
 
