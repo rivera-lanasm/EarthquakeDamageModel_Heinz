@@ -9,7 +9,7 @@ def main(testingmode = False):
         new_events = o1_Earthquake_ShakeMap_Download.check_for_shakemaps()
         # new events should be a list of newly downloaded earthquake event folders
 
-        print('\nnew shakemap folders: ', new_events)
+
 
     else:
         # if testing mode, use the napa 2014 shakemap
@@ -17,7 +17,7 @@ def main(testingmode = False):
         new_events = [r"C:\Projects\FEMA\EarthquakeModel\ShakeMaps\napa2014shakemap_fortesting"]
 
     for event in new_events:
-        print(event)
+        print('\nCensus Data Processing for: ', event)
         o2_Earthquake_ShakeMap_Into_CensusGeographies.shakemap_into_census_geo(event)
 
     return

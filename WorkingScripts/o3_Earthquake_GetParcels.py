@@ -1,52 +1,39 @@
-#-------------------------------------------------------------------------------
-# Name:        Tornado Damage Assessment Model
-# Purpose:      Automated tornado damage assessment workflow.
-#               
-#
-# Author:      Madeline Jones
-#
-# Created:     25/07/2017
-#-------------------------------------------------------------------------------
-
-
-
 import arcpy
-import math
 import os
-import sys
-import json
-try:
-    from urllib.request import urlopen
-except:
-    from urllib2 import urlopen
-import shutil
-import datetime
-import time
+from get_file_paths import get_shakemap_dir
+from get_shakemap_files import get_shakemap_files
+
+def unique_values(table, field):
+    with arcpy.da.SearchCursor(table, [field]) as cursor:
+        return sorted({row[0] for row in cursor})
 
 
-## Set up variables
+def shakemap_get_bldgs(bldg_gdb = r"C:\Data\FEMA_Lightbox_Parcels\ORNL_USAStructures_Centroids_LightboxSpatialJoin\ORNL_USAStructures_Centroids_LightboxSpatialJoin.gdb", eventdir=r"C:\Projects\FEMA\EarthquakeModel\ShakeMaps\napa2014shakemap_fortesting"):
 
-arcpy.env.workspace = arcpy.GetParameterAsText(0)
-GDB = arcpy.env.workspace
+    ShakeMapDir = get_shakemap_dir()
+    mi, pgv, pga = get_shakemap_files(eventdir)
+    unique = eventdir.split("\\")[-1]
 
-arcpy.env.overwriteOutput = True
+    arcpy.env.workspace = os.path.join(eventdir, "eqmodel_outputs.gdb")
+    GDB = arcpy.env.workspace
 
-ShakeMapDir = arcpy.GetParameterAsText(1)
-mi = "{}\mi.shp".format(ShakeMapDir)
-pgv = "{}\pgv.shp".format(ShakeMapDir)
-pga = "{}\pga.shp".format(ShakeMapDir)
+    #get list of intersecting states
+    state_names_list = unique_values(table=os.path.join(GDB, "census_county_max_mmi_pga_pgv"), field="STATE_NAME")
 
-Boo1 = arcpy.GetParameterAsText(2)
-Boo2 = arcpy.GetParameterAsText(3)
+    bldgs_output = os.path.join(GDB, "ORNL_LB_bldgs")
 
+    #select building centroids that are within intersecting states and intersect them with shakemap
+    for state in state_names_list:
+        arcpy.management.MakeFeatureLayer(os.path.join(bldg_gdb, state), "{}_lyr".format(state))
+        arcpy.management.SelectLayerByLocation("{}_lyr".format(state), 'INTERSECT', "shakemap_countyclip_mmi")
+    if len(state_names_list) > 1:
+        #merge
+        arcpy.Merge_management(["{}_lyr".format(x) for x in state_names_list], bldgs_output)
+    else:
+        #copy features
+        arcpy.CopyFeatures_management("{}_lyr".format(state), bldgs_output)
 
-
-if str(Boo1) == 'false' and str(Boo2) == 'false':
-    arcpy.AddWarning('No IA datasets were selected.')
-
-
-if str(Boo2) == 'true':
-    MobileHomeParks = r"\\hqmac3f1\Static\GISdata\Mobile_Homes\MobileHomeParks_March2016\MobileHomeParks.shp"
+    return bldgs_output
 
 
 
