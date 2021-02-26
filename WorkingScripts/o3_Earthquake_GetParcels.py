@@ -42,6 +42,20 @@ def shakemap_get_bldgs(bldg_gdb = r"C:\Data\FEMA_Lightbox_Parcels\ORNL_USAStruct
         #copy features
         arcpy.CopyFeatures_management("{}_lyr".format(state), bldgs_output)
 
+    #Summarize Within Bldg Count to Tracts
+    with arcpy.EnvManager(
+            scratchWorkspace = GDB,
+            workspace = GDB):
+        arcpy.analysis.SummarizeWithin(
+            os.path.join(GDB, "census_tract_max_mmi_pga_pgv"),
+            bldgs_output,
+            os.path.join(GDB, "census_tract_max_mmi_pga_pgv_bldgcount"),
+            "KEEP_ALL", None, "ADD_SHAPE_SUM", '', None, "NO_MIN_MAJ", "NO_PERCENT", None)
+
+    scratchgdb = os.path.join(eventdir, 'scratch.gdb')
+    if arcpy.Exists(scratchgdb):
+        arcpy.management.Delete(scratchgdb)
+
     return bldgs_output
 
 
