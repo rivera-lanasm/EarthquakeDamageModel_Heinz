@@ -5,10 +5,11 @@ from scipy.stats import norm
 import numpy as np
 
 # Import Spreadsheet with Hazus Building Type Breakdown per Tract
-bldg_percentages_by_tract_csv = r"C:\Projects\FEMA\EarthquakeModel\tables\Building_Percentages_Per_Tract_ALLSTATES.csv"
+bldg_percentages_by_tract_csv = r"..\tables\Building_Percentages_Per_Tract_ALLSTATES.csv"
 bldg_percentages_by_tract_df = pd.read_csv(bldg_percentages_by_tract_csv)
 
 #add leading zeroes to FIPS codes that do not have leading zeroes
+bldg_percentages_by_tract_df["Tract_str"] = bldg_percentages_by_tract_df["Tract"].apply(str)
 for fips in bldg_percentages_by_tract_df["Tract_str"].unique():
     if len(fips) == 11:
         None
@@ -19,7 +20,7 @@ for fips in bldg_percentages_by_tract_df["Tract_str"].unique():
         bldg_percentages_by_tract_df.loc[idx, "Tract_str"] = newfips
 
 # Import Damage Function Variables Spreadsheet
-dmgfvars = "DamageFunctionVariables.csv"
+dmgfvars = r"..\tables\DamageFunctionVariables.csv"
 dmgfvarsDF = pd.read_csv(dmgfvars)
 dmgfvarsDF = dmgfvarsDF.drop('Unnamed: 0', axis=1)
 list_bldgtypes = dmgfvarsDF["BLDG_TYPE"].unique()
