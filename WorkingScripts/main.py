@@ -16,8 +16,8 @@ def main(testingmode = False):
     else:
         # if testing mode, use the napa 2014 shakemap
         print('testing mode')
-        new_events = [r"C:\Projects\FEMA\EarthquakeModel\ShakeMaps\napa2014shakemap_fortesting"]
-        # new_events = [r"C:\Projects\FEMA\EarthquakeModel\ShakeMaps\idaho2017shakemap_fortesting"]
+        # new_events = [r"C:\Projects\FEMA\EarthquakeModel\ShakeMaps\napa2014shakemap_fortesting"]
+        new_events = [r"C:\Projects\FEMA\EarthquakeModel\ShakeMaps\idaho2017shakemap_fortesting"]
 
     for event in new_events:
         print('\nCensus Data Processing for: ', event)
