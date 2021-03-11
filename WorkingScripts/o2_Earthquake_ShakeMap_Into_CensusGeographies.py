@@ -68,6 +68,20 @@ def shakemap_into_census_geo(eventdir=r"C:\Projects\FEMA\EarthquakeModel\ShakeMa
         fieldmappings.replaceFieldMap(FieldIndex_toMin, fieldmap)
         return fieldmappings
 
+    def set_field_mappings_withmean(layer1, layer2, field_to_mean, new_field_name):
+        fieldmappings = arcpy.FieldMappings()
+        fieldmappings.addTable(layer1) #SelectedCounties
+        fieldmappings.addTable(layer2) #mmi
+        FieldIndex_toMean = fieldmappings.findFieldMapIndex(field_to_mean) #"PARAMVALUE"
+        fieldmap = fieldmappings.getFieldMap(FieldIndex_toMean)
+        field = fieldmap.outputField
+        field.name = new_field_name #"mean_MMI"
+        field.aliasName = new_field_name #"mean_MMI"
+        fieldmap.outputField = field
+        fieldmap.mergeRule = "mean"
+        fieldmappings.replaceFieldMap(FieldIndex_toMean, fieldmap)
+        return fieldmappings
+
     def remove_field_map(fieldmappings, listoffields):
         for F in listoffields:
             x = fieldmappings.findFieldMapIndex(F)
@@ -176,23 +190,35 @@ def shakemap_into_census_geo(eventdir=r"C:\Projects\FEMA\EarthquakeModel\ShakeMa
                                join_type="KEEP_ALL",
                                field_mapping=fieldmappings)
 
-
-    #maxPGV
-    fieldmappings = set_field_mappings_withmax(os.path.join(GDB, "census_tract_max_mmi_pga_"), pgv, "PARAMVALUE", "max_PGV")
+    # meanPGA
+    fieldmappings = set_field_mappings_withmean(os.path.join(GDB, "census_tract_max_mmi_pga_"), pga, "PARAMVALUE", "mean_PGA")
     remove_field_map(fieldmappings, ["AREA", "PERIMETER", "PGAPOL_", "PGAPOL_ID", "GRID_CODE"])
     # Spatial Join MAX PGV to each Tract
-    arcpy.SpatialJoin_analysis(target_features = os.path.join(GDB, "census_tract_max_mmi_pga_"),
+    arcpy.SpatialJoin_analysis(target_features=os.path.join(GDB, "census_tract_max_mmi_pga_"),
+                               join_features=pga,
+                               out_feature_class=os.path.join(GDB, "census_tract_max_mmi_pga__"),
+                               join_operation="JOIN_ONE_TO_ONE",
+                               join_type="KEEP_ALL",
+                               field_mapping=fieldmappings)
+
+    #maxPGV
+    fieldmappings = set_field_mappings_withmax(os.path.join(GDB, "census_tract_max_mmi_pga__"), pgv, "PARAMVALUE", "max_PGV")
+    remove_field_map(fieldmappings, ["AREA", "PERIMETER", "PGAPOL_", "PGAPOL_ID", "GRID_CODE"])
+    # Spatial Join MAX PGV to each Tract
+    arcpy.SpatialJoin_analysis(target_features = os.path.join(GDB, "census_tract_max_mmi_pga__"),
                                join_features = pgv,
                                out_feature_class = os.path.join(GDB, "census_tract_max_mmi_pga_pgv"),
                                join_operation = "JOIN_ONE_TO_ONE",
                                join_type = "KEEP_ALL",
                                field_mapping = fieldmappings)
 
+
     # Get MI as Integer Field
     arcpy.AddField_management(os.path.join(GDB, "census_tract_max_mmi_pga_pgv"), "max_MMI_int", "SHORT", "", "", "", "max_MMI_int")
     arcpy.CalculateField_management(os.path.join(GDB, "census_tract_max_mmi_pga_pgv"), "max_MMI_int", "math.floor( !max_MMI! )", "PYTHON_9.3", "")
 
     # Delete PGA and PGV tract feature classes
+    arcpy.Delete_management(os.path.join(GDB, "census_tract_max_mmi_pga__"))
     arcpy.Delete_management(os.path.join(GDB, "census_tract_max_mmi_pga_"))
     arcpy.Delete_management(os.path.join(GDB, "census_tract_max_mmi_pga"))
     arcpy.Delete_management(os.path.join(GDB, "census_tract_max_mmi"))

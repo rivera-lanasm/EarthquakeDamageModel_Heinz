@@ -4,6 +4,7 @@ import time
 import o1_Earthquake_ShakeMap_Download
 import o2_Earthquake_ShakeMap_Into_CensusGeographies
 import o3_Earthquake_GetParcels
+import o4_PtolemyModelRun
 
 
 def main(testingmode = False):
@@ -25,6 +26,9 @@ def main(testingmode = False):
 
         print('\nGathering Building Outlines for: ', event)
         ORNL_LB_bldgs = o3_Earthquake_GetParcels.shakemap_get_bldgs(eventdir = event)
+
+        print('\nRunning Tract-Level Damage Assessment Model for: ', event)
+        o4_PtolemyModelRun.main(eventdir = event)
 
     return
 
