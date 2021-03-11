@@ -6,7 +6,7 @@ Earthquake Damage Assessment Model
 (geopandas/scipy)
 
 in terminal run:
-conda activate <file path of cloned arcpro env with geopandas installed>
+`conda activate <file path of cloned arcpro env with geopandas installed>
   cd <file path of repo WorkingScripts folder ...\EarthquakeModel\WorkingScripts>
-  python main.py
+  python main.py`
 
