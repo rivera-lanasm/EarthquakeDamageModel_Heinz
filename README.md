@@ -13,6 +13,7 @@ The following supplemental data sets will need to be downloaded and stored in th
 | Census | [link](https://www2.census.gov/geo/tiger/TIGER2019/TRACT/) | Download and merge all into a single nationwide tracts shapefile | tl_2019_us_tracts\2019censustracts.shp | 
 
 <img align="right" src = "bldg_centroids_gdb_screenshot.PNG" width="200">
+
 #### Building Centroids:
 In order to estimate the number of structures impacted, the user will need to have a local geodatabase
 containing building centroids for each state. The file path of this geodatabase will need to be updated 
