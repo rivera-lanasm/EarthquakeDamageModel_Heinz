@@ -17,6 +17,7 @@ In order to estimate the number of structures impacted, the user will need to ha
 containing building centroids for each state. The file path of this geodatabase will need to be updated 
 in line 6 of `o3_Earthquake_GetBldgCentroids.py` for the variable "bldg_centroids".
 ![](bldg_centroids_gdb_screenshot.PNG?raw=true)
+<img src = "bldg_centroids_gdb_screenshot.PNG" width="50">
 
 #### Testing Mode:
 The model can be set up to run on a Task Scheduler and it will check for new earthquake events 
