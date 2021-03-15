@@ -1,3 +1,26 @@
+# Files to ignore:
+Data/esri_2019_detailed_counties/*
+Data/IRC_2006_2009/
+Data/tl_2019_us_county/
+Data/tl_2019_us_tracts/*
+Data/usa_states/
+do_not_push/
+OriginalScripts/
+ShakeMaps/*
+ShakeMaps/!idaho2017shakemap_fortesting/shape.zip
+ShakeMaps/!napa2014shakemap_fortesting/shape.zip
+tables/*
+tables/!DamageFunctionVariables*
+tables/!Building_Percentages_Per_Tract_ALLSTATES.csv
+WorkingScripts/FEMA_Analysis_Tools*
+WorkingScripts/get_seismic_design_code.py
+WorkingScripts/join_seis_code.py
+WorkingScripts/o4_Earthquake_GetHazusStructureType.py
+
+# PyCharm
+.idea/
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
