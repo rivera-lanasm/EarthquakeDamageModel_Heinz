@@ -15,7 +15,7 @@ def make_dictionaries():
     ConstrTyp_dict = {}
     ExtWall_dict = {}
 
-    # Populate dicts with lookup table data - CONSTRUCTION TYPE
+    # Populate dicts with lookup table Data - CONSTRUCTION TYPE
     ConstrType_dbf = r"C:\Projects\FEMA\EarthquakeModel\tables\lightbox_constructiontype.dbf"
     with arcpy.da.SearchCursor(ConstrType_dbf, ["Code", "Code_Descr", "BLDG_CATEG", "BLDG_SUBCA", "BLDG_TYPE"]) as cursor:
         for row in cursor:

@@ -14,8 +14,8 @@ def shakemap_into_census_geo(eventdir=r"C:\Projects\FEMA\EarthquakeModel\ShakeMa
 
     #Variables for Census Geographies
     ###Blocks = #filepath
-    Tracts = os.path.join(os.path.dirname(os.getcwd()), 'data', 'tl_2019_us_tracts', '2019censustracts.shp')
-    DetailCounties = os.path.join(os.path.dirname(os.getcwd()), 'data', 'esri_2019_detailed_counties', '2019detailedcounties.shp')
+    Tracts = os.path.join(os.path.dirname(os.getcwd()), 'Data', 'tl_2019_us_tracts', '2019censustracts.shp')
+    DetailCounties = os.path.join(os.path.dirname(os.getcwd()), 'Data', 'esri_2019_detailed_counties', '2019detailedcounties.shp')
 
     #Other layers/shapefiles
     arcpy.management.CreateFileGDB(eventdir, "eqmodel_outputs")

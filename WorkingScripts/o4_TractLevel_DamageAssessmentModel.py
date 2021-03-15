@@ -128,7 +128,7 @@ def main(tracts_layer = "census_tract_max_mmi_pga_pgv_bldgcount", eventdir = r"C
     tracts["Yellow"] = tracts["Extensive"]
     tracts["Red"] = tracts["Complete"]
 
-    tracts.to_file(os.path.join(eventdir, "ptolemy_model_output.shp"))
+    tracts.to_file(os.path.join(eventdir, "TractLevel_DamageAssessmentModel_Output.shp"))
 
     return
 

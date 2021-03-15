@@ -1,12 +1,35 @@
 # EarthquakeModel
-Earthquake Damage Assessment Model
+
+#####System Requirements:
+- ArcGIS Pro 2.7+
+- Windows 10
+
+##### Data Downloads:
+The following supplemental data sets will need to be downloaded and stored in the "EarthquakeModel\Data" folder with the following names:
+
+| Data Source | Link to Download | Geoprocessing Instructions | Name & Location in Data Folder 
+|-------|--------|---------|---------|
+| Esri/Census| [link](https://www.arcgis.com/home/item.html?id=a00d6b6149b34ed3b833e10fb72ef47b)| Export layer "USA Counties (below 1:3m)" to shapefile | esri_2019_detailed_counties\2019detailedcounties.shp| 
+| Census | [link](https://www2.census.gov/geo/tiger/TIGER2019/TRACT/) | Download and merge all into a single nationwide tracts shapefile | tl_2019_us_tracts\2019censustracts.shp | 
 
 
--future versions of this code will be open source but follow this link to get the steps to clone your esri environment and then install requirements.txt in cloned esri env
-(geopandas/scipy)
 
-in terminal run:  
+#####Instructions to set up the environment and run the program:
+
+- Future versions of this code will be open source (non-arcpy dependent).
+- For now, use [this link](https://support.esri.com/en/technical-article/000020560) for instructions to clone your ArcGIS Pro Python environment, and then install requirements.txt in the cloned environment.
+- Then, in terminal run the following lines to kickoff the Earthquake Model:  
 `conda activate <file path of cloned arcpro env with geopandas installed>`    
 `cd <file path of repo WorkingScripts folder ...\EarthquakeModel\WorkingScripts>`  
 `python main.py`   
 
+#####Earthquake Model Methodology
+
+
+#####References:
+- Mike Hearne, USGS ["get-event.py"](https://gist.github.com/mhearne-usgs/6b040c0b423b7d03f4b9)
+- [OpenQuake Platform](https://platform.openquake.org/) (for Hazus Damage Functions)
+- [Hazus Earthquake Technical Manual](https://www.fema.gov/flood-maps/tools-resources/flood-map-products/hazus/user-technical-manuals#:~:text=Hazus%20Earthquake%20Manuals&text=The%20Hazus%20Earthquake%20User%20and,%2C%20scenario%2C%20or%20probabilistic%20earthquakes.)
+
+##### Contact
+Madeline Jones - [@madiej6](https://twitter.com/madiej6) - madeline.jones@nltgis.com

@@ -4,7 +4,7 @@ import time
 import o1_Earthquake_ShakeMap_Download
 import o2_Earthquake_ShakeMap_Into_CensusGeographies
 import o3_Earthquake_GetParcels
-import o4_PtolemyModelRun
+import o4_TractLevel_DamageAssessmentModel
 
 
 def main(testingmode = False):
@@ -28,13 +28,13 @@ def main(testingmode = False):
         ORNL_LB_bldgs = o3_Earthquake_GetParcels.shakemap_get_bldgs(eventdir = event)
 
         print('\nRunning Tract-Level Damage Assessment Model for: ', event)
-        o4_PtolemyModelRun.main(eventdir = event)
+        o4_TractLevel_DamageAssessmentModel.main(eventdir = event)
 
     return
 
 
 if __name__ == "__main__":
     start_time = time.time()
-    main(testingmode=True)
+    main(testingmode=False)
     print("--- {} seconds ---".format(time.time() - start_time))
 

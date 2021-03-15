@@ -35,9 +35,9 @@ def check_for_shakemaps(mmi_threshold = 3):
 
     # Get the list of event IDs in the current feed
     fh = urlopen(FEEDURL) #open a URL connection to the event feed.
-    data = fh.read() #read all of the data from that URL into a string
+    data = fh.read() #read all of the Data from that URL into a string
     fh.close()
-    jdict = json.loads(data) #Parse that data using the stdlib json module.  This turns into a Python dictionary.
+    jdict = json.loads(data) #Parse that Data using the stdlib json module.  This turns into a Python dictionary.
 
 
     # Create list of files in current folder
@@ -54,7 +54,7 @@ def check_for_shakemaps(mmi_threshold = 3):
         #for earthquake['id'] in earthquake['id']:
         eventurl = earthquake['properties']['detail'] #get the event-specific URL
         fh = urlopen(eventurl)
-        data = fh.read() #read event data into a string
+        data = fh.read() #read event Data into a string
         fh.close()
         jdict2 = json.loads(data) #and parse using json module as before
         if jdict2['properties']['mag'] < mmi_threshold:
@@ -101,7 +101,7 @@ def check_for_shakemaps(mmi_threshold = 3):
             eventdir = "{}\{}".format(FilePath,str(eventid))
 
             # Create a ZipFile object, instantiated with our file-like StringIO object.
-            # Extract all of the data from that StringIO object into files in the provided output directory.
+            # Extract all of the Data from that StringIO object into files in the provided output directory.
             myzip = zipfile.ZipFile(stringbuf,'r',zipfile.ZIP_DEFLATED)
             myzip.extractall(eventdir)
             myzip.close()
@@ -155,7 +155,7 @@ def check_for_shakemaps(mmi_threshold = 3):
 
 
 
-            # Add XY point data to Epicenter shapefile
+            # Add XY point Data to Epicenter shapefile
             with arcpy.da.UpdateCursor("{}\Epicenter.shp".format(eventdir),"SHAPE@XY") as cursor:
                 for eq in cursor:
                     eq[0]=pnt
@@ -267,7 +267,7 @@ def check_for_shakemaps(mmi_threshold = 3):
                 del curs
 
 
-                # Add XY point data to Epicenter shapefile
+                # Add XY point Data to Epicenter shapefile
                 with arcpy.da.UpdateCursor("{}\Epicenter.shp".format(eventdir),"SHAPE@XY") as cursor:
                     for eq in cursor:
                         eq[0]=pnt
