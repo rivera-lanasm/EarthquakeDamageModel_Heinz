@@ -7,8 +7,6 @@ Data/usa_states/
 do_not_push/
 OriginalScripts/
 ShakeMaps/*
-ShakeMaps/!idaho2017shakemap_fortesting/shape.zip
-ShakeMaps/!napa2014shakemap_fortesting/shape.zip
 tables/lightbox*
 WorkingScripts/FEMA_Analysis_Tools*
 WorkingScripts/get_seismic_design_code.py

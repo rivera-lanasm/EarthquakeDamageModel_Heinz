@@ -12,7 +12,14 @@ The following supplemental data sets will need to be downloaded and stored in th
 | Esri/Census| [link](https://www.arcgis.com/home/item.html?id=a00d6b6149b34ed3b833e10fb72ef47b)| Export layer "USA Counties (below 1:3m)" to shapefile | esri_2019_detailed_counties\2019detailedcounties.shp| 
 | Census | [link](https://www2.census.gov/geo/tiger/TIGER2019/TRACT/) | Download and merge all into a single nationwide tracts shapefile | tl_2019_us_tracts\2019censustracts.shp | 
 
-
+#### Testing Mode:
+The model can be set up to run on a Task Scheduler and it will check for new earthquake events 
+using the [USGS ShakeMap API](https://earthquake.usgs.gov/fdsnws/event/1/) in order to estimate impacts in near-real time. 
+The model can be run in <i>testing mode</i> to demonstrate what the model outputs should look like. 
+To run the model in testing mode:
+1. Unzip the shape.zip files inside the ShakeMaps subdirectories.
+2. Change the function parameters in main.py "testing_mode" to be <b>True</b>.
+3. Follow the instructions below to set up the environment and run the program.
 
 #### Instructions to set up the environment and run the program:
 
