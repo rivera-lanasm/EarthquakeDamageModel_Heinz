@@ -3,7 +3,7 @@ import time
         
 import o1_Earthquake_ShakeMap_Download
 import o2_Earthquake_ShakeMap_Into_CensusGeographies
-import o3_Earthquake_GetParcels
+import o3_Earthquake_GetBldgCentroids
 import o4_TractLevel_DamageAssessmentModel
 
 
@@ -25,7 +25,7 @@ def main(testingmode = False):
         o2_Earthquake_ShakeMap_Into_CensusGeographies.shakemap_into_census_geo(eventdir = event)
 
         print('\nGathering Building Outlines for: ', event)
-        ORNL_LB_bldgs = o3_Earthquake_GetParcels.shakemap_get_bldgs(eventdir = event)
+        ORNL_LB_bldgs = o3_Earthquake_GetBldgCentroids.shakemap_get_bldgs(eventdir = event)
 
         print('\nRunning Tract-Level Damage Assessment Model for: ', event)
         o4_TractLevel_DamageAssessmentModel.main(eventdir = event)
