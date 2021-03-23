@@ -1,4 +1,4 @@
-# EarthquakeModel
+# EarthquakeDamageModel
 
 #### System Requirements:
 - ArcGIS Pro 2.7+
