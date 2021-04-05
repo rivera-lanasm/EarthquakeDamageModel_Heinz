@@ -2,8 +2,9 @@ import arcpy
 import os
 from get_file_paths import get_shakemap_dir
 from get_shakemap_files import get_shakemap_files
+from config import BuildingCentroids
 
-bldg_centroids = r"C:\Data\FEMA_Lightbox_Parcels\ORNL_USAStructures_Centroids_LightboxSpatialJoin\ORNL_USAStructures_Centroids_LightboxSpatialJoin.gdb"
+bldg_centroids = BuildingCentroids
 
 def unique_values(table, field):
     with arcpy.da.SearchCursor(table, [field]) as cursor:
