@@ -14,13 +14,6 @@ from within_conus import check_coords
 from get_file_paths import get_shakemap_dir
 
 
-
-## uncomment these when inside a FEMA network
-#os.environ["HTTP_PROXY"] = "http://proxy.apps.dhs.gov:80"
-#os.environ["HTTPS_PROXY"] = "http://proxy.apps.dhs.gov:80"
-
-
-
 def check_for_shakemaps(mmi_threshold = 3):
 
     FilePath = get_shakemap_dir()

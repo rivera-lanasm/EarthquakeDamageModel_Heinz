@@ -16,8 +16,13 @@ The following supplemental data sets will need to be downloaded and stored in th
 
 #### Building Centroids:
 In order to estimate the number of structures impacted, the user will need to have a local geodatabase
-containing building centroids for each state. The file path of this geodatabase will need to be updated 
-in line 6 of `o3_Earthquake_GetBldgCentroids.py` for the variable "bldg_centroids". (see image on right)
+containing building centroids for each state. Some open and public data sets that could be used are 
+[Microsoft Building Footprints](https://github.com/microsoft/USBuildingFootprints), 
+[OpenStreetMap](https://osmbuildings.org/) or 
+[ORNL USA Structures](http://disasters.geoplatform.gov/publicdata/Partners/ORNL/USA_Structures/). 
+The building centroids are used to calculate the count of structures within each Census Tract. 
+The file path of this geodatabase will need to be updated in `config.py` for the variable "BuildingCentroids". 
+(see image on right)
 
 
 #### Testing Mode:
@@ -25,9 +30,9 @@ The model can be set up to run on a Task Scheduler and it will check for new ear
 using the [USGS ShakeMap API](https://earthquake.usgs.gov/fdsnws/event/1/) in order to estimate impacts in near-real time. 
 The model can be run in <i>testing mode</i> to demonstrate what the model outputs should look like. 
 To run the model in testing mode:
-1. Unzip the shape.zip files inside the ShakeMaps subdirectories.
+1. Unzip the shape.zip files inside the ShakeMaps_Testing subdirectories.
 2. Change the function parameters in main.py "testing_mode" to be <b>True</b>.
-3. Update file paths and uncomment lines 20/21 of main.py
+3. Update file paths in `config.py` and uncomment lines 20/21 of `main.py` (depending on which test to run)
 4. Follow the instructions below to set up the environment and run the program.
 
 #### Instructions to set up the environment and run the program:

@@ -4,6 +4,7 @@ import pandas as pd
 from scipy.stats import norm
 import numpy as np
 import time
+import config
 
 # Import Spreadsheet with Hazus Building Type Breakdown per Tract
 bldg_percentages_by_tract_csv = r"..\Tables\Building_Percentages_Per_Tract_ALLSTATES.csv"
@@ -27,7 +28,7 @@ dmgfvarsDF = dmgfvarsDF.drop('Unnamed: 0', axis=1)
 list_bldgtypes = dmgfvarsDF["BLDG_TYPE"].unique()
 
 
-def main(tracts_layer = "census_tract_max_mmi_pga_pgv_bldgcount", eventdir = r"C:\Projects\FEMA\EarthquakeModel\ShakeMaps\idaho2017shakemap_fortesting"):
+def main(tracts_layer = "census_tract_max_mmi_pga_pgv_bldgcount", eventdir = config.IdahoEventDir):
 
     gdb = os.path.join(eventdir, "eqmodel_outputs.gdb")
 

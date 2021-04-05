@@ -2,16 +2,15 @@ import arcpy
 import os
 from get_file_paths import get_shakemap_dir
 from get_shakemap_files import get_shakemap_files
-from config import BuildingCentroids
+import config
 
-bldg_centroids = BuildingCentroids
 
 def unique_values(table, field):
     with arcpy.da.SearchCursor(table, [field]) as cursor:
         return sorted({row[0] for row in cursor})
 
 
-def shakemap_get_bldgs(bldg_gdb = bldg_centroids, eventdir=r"C:\Projects\FEMA\EarthquakeModel\ShakeMaps\napa2014shakemap_fortesting"):
+def shakemap_get_bldgs(bldg_gdb = config.BuildingCentroids, eventdir = config.NapaEventDir):
 
     ShakeMapDir = get_shakemap_dir()
     mi, pgv, pga = get_shakemap_files(eventdir)

@@ -2,9 +2,10 @@ import arcpy
 import os
 from get_file_paths import get_shakemap_dir
 from get_shakemap_files import get_shakemap_files
+import config
 
 
-def shakemap_into_census_geo(eventdir=r"C:\Projects\FEMA\EarthquakeModel\ShakeMaps\napa2014shakemap_fortesting"):
+def shakemap_into_census_geo(eventdir = config.NapaEventDir):
 
     # ShakeMap GIS File Folder
     ShakeMapDir = get_shakemap_dir()
