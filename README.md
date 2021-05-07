@@ -45,7 +45,7 @@ To run the model in testing mode:
 `python main.py`   
 
 #### Earthquake Model Methodology
-For more information about model methodology, review: "A Predictive Earthquake Damage Model written in Python.pdf"
+For more information about model methodology, review [this blog post on medium](https://medium.com/new-light-technologies/a-predictive-earthquake-damage-model-written-in-python-e1862518fd92).
 
 #### References:
 - Mike Hearne, USGS ["get-event.py"](https://gist.github.com/mhearne-usgs/6b040c0b423b7d03f4b9)
