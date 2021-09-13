@@ -53,4 +53,4 @@ For more information about model methodology, review [this blog post on medium](
 - [Hazus Earthquake Technical Manual](https://www.fema.gov/flood-maps/tools-resources/flood-map-products/hazus/user-technical-manuals#:~:text=Hazus%20Earthquake%20Manuals&text=The%20Hazus%20Earthquake%20User%20and,%2C%20scenario%2C%20or%20probabilistic%20earthquakes.)
 
 ##### Contact
-Madeline Jones - [@madiej6](https://twitter.com/madiej6) - madeline.jones@nltgis.com
+Madeline Jones - [@madiej6](https://twitter.com/madiej6) - madelinejones214@gmail.com
