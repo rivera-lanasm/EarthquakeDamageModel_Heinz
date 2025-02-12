@@ -1,3 +1,16 @@
+"""
+File Description Added by Meriem
+
+This script offers two main modes:
+1.  Testing mode: 
+        - Uses either Napa 2014 or Idaho 2017 as case studies (customizable)
+        - Processes 
+                - (1) Census data [using shakemap_into_census_geo() from script o2_Earthquake_ShakeMap_Into_CensusGeographies.py ]; 
+                - (2) Building Outlines [using shakemap_get_bldgs() from o3_Earthquake_GetBldgCentroids.py script]; 
+                - (3) and generates trace-level damage assessment model for each event in the incident [using main() from o4_TractLevel_DamageAssessmentModel.py)
+
+2. Non Testing mode: Look for new eartquake events [using check_for_shakemaps() from o1_Earthquake_ShakeMap_Download.py]
+"""
 import os
 import time
         
