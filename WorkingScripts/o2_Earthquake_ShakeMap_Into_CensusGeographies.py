@@ -1,3 +1,12 @@
+"""
+This script integrates earthquake ShakeMap data with U.S. Census geographic boundaries using ArcGIS tools, including:
+- Clip all USGS ShakeMap GIS shapefiles to the county layer
+- Selecting Counties That Intersect with USGS ShakeMap GIS shapefiles
+
+Using helper functions this script determines and joins maximum, minimum, and mean values of
+earthquake intensity metrics (MMI, PGA, PGV) to each county and each tract
+
+"""
 import arcpy
 import os
 from get_file_paths import get_shakemap_dir
@@ -29,19 +38,36 @@ def shakemap_into_census_geo(eventdir = config.NapaEventDir):
     arcpy.Clip_analysis(pga, DetailCounties, os.path.join(GDB, "shakemap_countyclip_pga"))
 
 
+    # Add a new field (a new columns)
     arcpy.AddField_management(os.path.join(GDB, "shakemap_countyclip_mmi"), "MMI_int", "SHORT", "", "", "", "MMI_int")
+    # Calculates the integers MMI value by rounding down
     arcpy.CalculateField_management(os.path.join(GDB, "shakemap_countyclip_mmi"), "MMI_int", "math.floor( !PARAMVALUE! )", "PYTHON_9.3", "")
+    # Dissolves polygons that share the same MMI_int value
     arcpy.Dissolve_management(os.path.join(GDB, "shakemap_countyclip_mmi"), os.path.join(GDB, "shakemap_countyclip_mmi_int"), "MMI_int", "", "MULTI_PART", "DISSOLVE_LINES")
 
+    # Create Layers for Spatial Analysis
     #need to make layers for all of these before doing spatial join
     arcpy.MakeFeatureLayer_management(DetailCounties,"Counties_lyr_{}".format(unique))
     arcpy.MakeFeatureLayer_management(Tracts,"Tracts_lyr_{}".format(unique))
     #arcpy.MakeFeatureLayer_management(Blocks,"Blocks_lyr_{}".format(unique))
-
+    
     # Select Counties That Intersect with USGS ShakeMap GIS shapefiles
     SelectedCounties = arcpy.SelectLayerByLocation_management("Counties_lyr_{}".format(unique), "INTERSECT", mi, "", "NEW_SELECTION")
 
     def set_field_mappings_withmax(layer1, layer2, field_to_max, new_field_name):
+        """
+
+        Creates an ArcPy FieldMappings object to join two layers while computing 
+        the maximum value of a specified field.
+        Args:
+            layer1 (str): Path to the target feature layer (usually counties)
+            layer2 (str): Path to the join feature layer ()
+            field_to_max (str): Name of the field for which the maximum value will be computed. ("PARAMVALUE")
+            new_field_name (str): Name of the new field storing the maximum value. ( for example "max_MMI")
+            
+        Returns:
+            arcpy.FieldMappings: Configured field mappings object with the max merge rule applied.
+        """
         fieldmappings = arcpy.FieldMappings()
         fieldmappings.addTable(layer1) #SelectedCounties
         fieldmappings.addTable(layer2) #mmi
@@ -56,6 +82,18 @@ def shakemap_into_census_geo(eventdir = config.NapaEventDir):
         return fieldmappings
 
     def set_field_mappings_withmin(layer1, layer2, field_to_min, new_field_name):
+        """
+        Creates an ArcPy FieldMappings object to join two layers while computing 
+        the minimum value of a specified field.
+        Args:
+            layer1 (str): Path to the target feature layer.
+            layer2 (str): Path to the join feature layer.
+            field_to_min (str): Name of the field for which the minimum value will be computed.
+            new_field_name (str): Name of the new field storing the minimum value.
+            
+        Returns:
+            arcpy.FieldMappings: Configured field mappings object with the min merge rule applied.
+        """
         fieldmappings = arcpy.FieldMappings()
         fieldmappings.addTable(layer1) #SelectedCounties
         fieldmappings.addTable(layer2) #mmi
