@@ -1,3 +1,18 @@
+"""
+Top-of-file comments added by Meriem
+
+This script is designed to check for the most recent earthquake ShakeMap data from USGS (as in the past week). 
+It downloads and saves the relevant earthquakes detailss if they meet the following criteria:
+    - Magnitude above 3
+    - In the contigutous US
+    - Has a shakemap
+
+Does it fit our use case? 
+- Not really, this script is not very relevant as it is checking for any new eartquake events. 
+- However, we're only interested in pulling shakemap data from specific eartquake events.
+- We could re-use the second part of this code (the part to extract the ShakeMap ZIP File + create epicenter files) in our application.
+
+"""
 # Imports
 import arcpy
 try:
@@ -15,6 +30,23 @@ from get_file_paths import get_shakemap_dir
 
 
 def check_for_shakemaps(mmi_threshold = 3):
+    
+    """
+    Checks for new significant earthquake ShakeMaps in the last week from USGS 
+    and downloads relevant data if available.
+
+    - Fetches earthquake data from the USGS GeoJSON feed (in the last week)
+    - Filters events based on magnitude and availability of ShakeMaps.
+    - Verifies if the earthquake epicenter is within the continental US.
+    - Downloads and extracts ShakeMap data into event-specific folders.
+    - Updates existing event data if new information is available.
+
+    Args:
+        mmi_threshold (int, optional): Minimum magnitude intensity threshold for processing events. Defaults to 3.
+
+    Returns:
+        list: A list of directories where new ShakeMap data was downloaded.
+    """
 
     FilePath = get_shakemap_dir()
     new_shakemap_folders = []
