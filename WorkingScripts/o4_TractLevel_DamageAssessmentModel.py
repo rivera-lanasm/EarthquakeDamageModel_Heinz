@@ -22,6 +22,23 @@ for fips in bldg_percentages_by_tract_df["Tract_str"].unique():
         bldg_percentages_by_tract_df.loc[idx, "Tract_str"] = newfips
 
 # Import Damage Function Variables Spreadsheet
+
+# The damage function variable table explained:
+
+# Each row represents a combination of building type and building code
+# building type refers to the (such as structure or materials of the building: frames, wall types)
+# building codes are the classification of its seismic codes
+# for example: HC (high code) is the most resistant. 
+
+# Each column (median moderate, median extensive, median complete ...) refers to a damage state
+# The values represents the PGA (Peak Ground Acceleration) value at which such damage state will occur.
+# For example, if MedianModerate = 0.22, it means given the building type and building code,
+# moderate damage can be expected at a PGA of 0.22.
+
+# Those columns were followed by the beta columns (BetaSlight, BetaModerate, BetaExtensive...)
+# Those are lognormal standard deviations (used to compute confidence intervals or model uncertainty).
+# Small beta means this certain type of building has similar falling threshold (smaller uncertainty)
+
 dmgfvars = r"..\Tables\DamageFunctionVariables.csv"
 dmgfvarsDF = pd.read_csv(dmgfvars)
 dmgfvarsDF = dmgfvarsDF.drop('Unnamed: 0', axis=1)
@@ -78,6 +95,8 @@ def main(tracts_layer = "census_tract_max_mmi_pga_pgv_bldgcount", eventdir = con
         # Then, plots the damage function curve and based on the Min or Max PGA, estimates the probability of damage
         # for that structure type. The probabilities are then multiplied by the number of structures in the tract.
 
+        # Here is where the damage function variables data is used:
+        # Used lognormal cumulative distribution function (CDF) to model damage.
 
         for BLDG_TYPE in list_bldgtypes:
 
@@ -104,16 +123,30 @@ def main(tracts_layer = "census_tract_max_mmi_pga_pgv_bldgcount", eventdir = con
             PGAextensive = df_vars["MEDIANEXTE"].item()
             PGAcomplete = df_vars["MEDIANCOMP"].item()
 
+            # Compute damage probabilities
+            # Earthquake damage follows a lognormal cumulative distribution, where small PGA won't cause much damage
+            # but damage increase dramatically as PGA increases (so there is a very rapid transition).
+
+            # log of minPGA/PGAThreshold (threshold read from the table): compute the log ratio
+            # Which basically reflects the prob of damage given the min PGA of the earthquake.
+
+            # Then the above ratio is scaled using the inverse of beta
+            # Larger beta means more uncertainty (each building of this type may have different damage thresholds)
+            # So those with larger beta have more strectched out and smooth curves, not that all buildings fall at the very similar threshold.
+            
+            # PSlight: probability that the given building type will at least experience slight damage.
             Pslight = norm.cdf((1/Bslight)*np.log(minPGA/PGAslight))
             Pmoderate = norm.cdf((1/Bmoderate)*np.log(minPGA/PGAmoderate))
             Pextensive = norm.cdf((1/Bextensive)*np.log(minPGA/PGAextensive))
             Pcomplete = norm.cdf((1/Bcomplete)*np.log(minPGA/PGAcomplete))
 
+            # Estimate cumulative  number of bildings with certain levels of damage
             numSlight = df[BLDG_TYPE].item() * Pslight
             numModerate = numSlight * Pmoderate
             numExtensive = numModerate * Pextensive
             numComplete = numExtensive * Pcomplete
 
+            # Get number of building for each category (subtract off the amount counted under other categories).
             numSlight = numSlight - numModerate
             numModerate = numModerate - numExtensive
             numExtensive = numExtensive - numComplete
