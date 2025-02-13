@@ -13,9 +13,9 @@ bldg_percentages_by_tract_df = pd.read_csv(bldg_percentages_by_tract_csv)
 #add leading zeroes to FIPS codes that do not have leading zeroes
 bldg_percentages_by_tract_df["Tract_str"] = bldg_percentages_by_tract_df["Tract"].apply(str)
 for fips in bldg_percentages_by_tract_df["Tract_str"].unique():
-    if len(fips) == 11:
+    if len(fips) == 11:    #fips code is already correct -> do nothing
         None
-    elif len(fips) == 10:
+    elif len(fips) == 10:    #fips code miss a leading zero -> needed to be corrected
         # add leading zero to fips string
         newfips = "0" + fips
         idx = bldg_percentages_by_tract_df[bldg_percentages_by_tract_df["Tract_str"]==fips]["Tract_str"].index
