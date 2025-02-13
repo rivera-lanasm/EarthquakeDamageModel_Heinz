@@ -73,6 +73,8 @@ def main(tracts_layer = "census_tract_max_mmi_pga_pgv_bldgcount", eventdir = con
     for FIPS in tract_FIPS_list:
         subset = tracts[tracts["FIPS"] == FIPS]
 
+
+        #extract necessary columns for current tract's damage assessment
         df = subset[["FIPS", "max_MMI", "max_PGA", "max_PGV", "min_PGA", "mean_PGA", "Point_Count", "geometry",
                      'W1', 'W2', 'S1L', 'S1M', 'S1H', 'S2L', 'S2M', 'S2H', 'S3',
                      'S4L', 'S4M', 'S4H', 'S5L', 'S5M', 'S5H', 'C1L', 'C1M', 'C1H', 'C2L',
@@ -82,7 +84,7 @@ def main(tracts_layer = "census_tract_max_mmi_pga_pgv_bldgcount", eventdir = con
 
         # find/match building type percentages for the current Census Tract
         subset_bldgpcts = bldg_percentages_by_tract_df[bldg_percentages_by_tract_df["Tract_str"] == FIPS]
-        if len(subset_bldgpcts) == 0:
+        if len(subset_bldgpcts) == 0:        #if no matching building type percentages found for this tract -> skip this tract
             continue
 
         bldgtype_cols = ['W1', 'W2', 'S1L', 'S1M', 'S1H', 'S2L', 'S2M', 'S2H', 'S3',
