@@ -68,7 +68,8 @@ def main(tracts_layer = "census_tract_max_mmi_pga_pgv_bldgcount", eventdir = con
     for col in newcols:
         tracts[col] = 0
 
-    # creates a new DataFrame containing only one Census Tract (the one currently being processed in the loop)
+    # process each tract individually
+    # creates a new DataFrame containing only one census tract (the one currently being processed in the loop)
     for FIPS in tract_FIPS_list:
         subset = tracts[tracts["FIPS"] == FIPS]
 
