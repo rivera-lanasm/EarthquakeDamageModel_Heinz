@@ -11,7 +11,14 @@ def unique_values(table, field):
 
 
 def shakemap_get_bldgs(bldg_gdb = config.BuildingCentroids, eventdir = config.NapaEventDir):
+    """
+    This function selects building centroids that are within the intersecting states of the shakemap and the building structures data.
+    It takes 2 arguments:
+    bldg_gdb: The path to the building structures data
+    eventdir: The path to the event directory
 
+    It returns the building outputs which is the count of building affected by the shakemap in each census tract.
+    """
     ShakeMapDir = get_shakemap_dir()
     mi, pgv, pga = get_shakemap_files(eventdir)
     unique = eventdir.split("\\")[-1]
