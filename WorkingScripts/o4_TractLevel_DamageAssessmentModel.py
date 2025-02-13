@@ -58,6 +58,8 @@ def main(tracts_layer = "census_tract_max_mmi_pga_pgv_bldgcount", eventdir = con
     tracts = gp.read_file(gdb, layer = tracts_layer)
     tract_FIPS_list = tracts["FIPS"].unique()
 
+
+    # initialize new Columns for Damage Assessment (building types + earthquake damage levels)
     newcols = ['W1', 'W2', 'S1L', 'S1M', 'S1H', 'S2L', 'S2M', 'S2H', 'S3',
                'S4L', 'S4M', 'S4H', 'S5L', 'S5M', 'S5H', 'C1L', 'C1M', 'C1H', 'C2L',
                'C2M', 'C2H', 'C3L', 'C3M', 'C3H', 'PC1', 'PC2L', 'PC2M', 'PC2H',
