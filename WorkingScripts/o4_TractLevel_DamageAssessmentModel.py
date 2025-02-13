@@ -92,9 +92,10 @@ def main(tracts_layer = "census_tract_max_mmi_pga_pgv_bldgcount", eventdir = con
                     'C2M', 'C2H', 'C3L', 'C3M', 'C3H', 'PC1', 'PC2L', 'PC2M', 'PC2H',
                     'RM1L', 'RM1M', 'RM2L', 'RM2M', 'RM2H', 'URML', 'URMM', 'MH']
 
+
+        # compute number of buildings per type in current Tract
         # multiply total building count by percentage for each building type
-        # estimate how many buildings belong to each building type
-        bldgcount = df["Point_Count"].item()
+        bldgcount = df["Point_Count"].item()                    # "Point_Count": the total number of buildings in this census Tract
         for col in bldgtype_cols:
             df[col] = bldgcount * subset_bldgpcts[col].iloc[0]
 
