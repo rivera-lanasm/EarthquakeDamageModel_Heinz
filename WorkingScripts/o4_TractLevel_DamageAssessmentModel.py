@@ -53,6 +53,8 @@ def main(tracts_layer = "census_tract_max_mmi_pga_pgv_bldgcount", eventdir = con
     
     gdb = os.path.join(eventdir, "eqmodel_outputs.gdb")
 
+    # read geospacial census Tract datafrom gdb file
+    # extract the list of unique census Tracts (FIPS codes)
     tracts = gp.read_file(gdb, layer = tracts_layer)
     tract_FIPS_list = tracts["FIPS"].unique()
 
