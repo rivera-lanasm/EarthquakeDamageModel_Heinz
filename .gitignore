@@ -16,6 +16,8 @@ OriginalScripts.zip
 
 # temp files
 tmp/*
+ShakeMaps_Testing/*
+Data/building_centroids/*
 
 # PyCharm
 .idea/
