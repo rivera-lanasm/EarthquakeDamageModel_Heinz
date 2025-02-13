@@ -1,21 +1,24 @@
 import os
-import geopandas as gp
+import geopandas as gp    #used for handling geospatial Census Tract data
 import pandas as pd
-from scipy.stats import norm
+from scipy.stats import norm    #used to compute earthquake damage probability
 import numpy as np
 import time
-import config
+import config 
 
 # Import Spreadsheet with Hazus Building Type Breakdown per Tract
 bldg_percentages_by_tract_csv = r"..\Tables\Building_Percentages_Per_Tract_ALLSTATES.csv"
 bldg_percentages_by_tract_df = pd.read_csv(bldg_percentages_by_tract_csv)
 
+'''
+Ensures all Census Tract FIPS codes are properly formatted as 11-digit strings by adding leading zeros when needed
+'''
 #add leading zeroes to FIPS codes that do not have leading zeroes
 bldg_percentages_by_tract_df["Tract_str"] = bldg_percentages_by_tract_df["Tract"].apply(str)
 for fips in bldg_percentages_by_tract_df["Tract_str"].unique():
-    if len(fips) == 11:
+    if len(fips) == 11:    #fips code is already correct -> do nothing
         None
-    elif len(fips) == 10:
+    elif len(fips) == 10:    #fips code miss a leading zero -> needed to be corrected
         # add leading zero to fips string
         newfips = "0" + fips
         idx = bldg_percentages_by_tract_df[bldg_percentages_by_tract_df["Tract_str"]==fips]["Tract_str"].index
@@ -47,11 +50,33 @@ list_bldgtypes = dmgfvarsDF["BLDG_TYPE"].unique()
 
 def main(tracts_layer = "census_tract_max_mmi_pga_pgv_bldgcount", eventdir = config.IdahoEventDir):
 
+    '''
+    Performs earthquake damage assessment at the Census Tract level.
+
+    This function:
+    1. Loads Census Tract data containing earthquake shaking intensity and building counts from o3.
+    2. Uses General Building Stock (GBS) percentages to estimate the number of buildings per type.
+    3. Applies earthquake damage probability models to estimate damage levels for each structure.
+    4. Aggregates results to classify tracts by damage severity.
+    5. Saves the final damage assessment as a shapefile.
+
+    Args:
+        tracts_layer (str): Name of the geospatial layer with Census Tract data.
+        eventdir (str): Path to the earthquake event directory.
+
+    Returns:
+        Saves the damage assessment results as a shapefile.
+    '''
+    
     gdb = os.path.join(eventdir, "eqmodel_outputs.gdb")
 
+    # read geospacial census Tract datafrom gdb file
+    # extract the list of unique census Tracts (FIPS codes)
     tracts = gp.read_file(gdb, layer = tracts_layer)
     tract_FIPS_list = tracts["FIPS"].unique()
 
+
+    # initialize new Columns for Damage Assessment (building types + earthquake damage levels)
     newcols = ['W1', 'W2', 'S1L', 'S1M', 'S1H', 'S2L', 'S2M', 'S2H', 'S3',
                'S4L', 'S4M', 'S4H', 'S5L', 'S5M', 'S5H', 'C1L', 'C1M', 'C1H', 'C2L',
                'C2M', 'C2H', 'C3L', 'C3M', 'C3H', 'PC1', 'PC2L', 'PC2M', 'PC2H',
@@ -60,9 +85,13 @@ def main(tracts_layer = "census_tract_max_mmi_pga_pgv_bldgcount", eventdir = con
     for col in newcols:
         tracts[col] = 0
 
+    # process each tract individually
+    # creates a new DataFrame containing only one census tract (the one currently being processed in the loop)
     for FIPS in tract_FIPS_list:
         subset = tracts[tracts["FIPS"] == FIPS]
 
+
+        #extract necessary columns for current tract's damage assessment
         df = subset[["FIPS", "max_MMI", "max_PGA", "max_PGV", "min_PGA", "mean_PGA", "Point_Count", "geometry",
                      'W1', 'W2', 'S1L', 'S1M', 'S1H', 'S2L', 'S2M', 'S2H', 'S3',
                      'S4L', 'S4M', 'S4H', 'S5L', 'S5M', 'S5H', 'C1L', 'C1M', 'C1H', 'C2L',
@@ -70,8 +99,9 @@ def main(tracts_layer = "census_tract_max_mmi_pga_pgv_bldgcount", eventdir = con
                      'RM1L', 'RM1M', 'RM2L', 'RM2M', 'RM2H', 'URML', 'URMM', 'MH',
                      'Slight', 'Moderate', 'Extensive', 'Complete']]
 
+        # find/match building type percentages for the current Census Tract
         subset_bldgpcts = bldg_percentages_by_tract_df[bldg_percentages_by_tract_df["Tract_str"] == FIPS]
-        if len(subset_bldgpcts) == 0:
+        if len(subset_bldgpcts) == 0:        #if no matching building type percentages found for this tract -> skip this tract
             continue
 
         bldgtype_cols = ['W1', 'W2', 'S1L', 'S1M', 'S1H', 'S2L', 'S2M', 'S2H', 'S3',
@@ -79,8 +109,10 @@ def main(tracts_layer = "census_tract_max_mmi_pga_pgv_bldgcount", eventdir = con
                     'C2M', 'C2H', 'C3L', 'C3M', 'C3H', 'PC1', 'PC2L', 'PC2M', 'PC2H',
                     'RM1L', 'RM1M', 'RM2L', 'RM2M', 'RM2H', 'URML', 'URMM', 'MH']
 
+
+        # compute number of buildings per type in current Tract
         # multiply total building count by percentage for each building type
-        bldgcount = df["Point_Count"].item()
+        bldgcount = df["Point_Count"].item()                    # "Point_Count": the total number of buildings in this census Tract
         for col in bldgtype_cols:
             df[col] = bldgcount * subset_bldgpcts[col].iloc[0]
 
