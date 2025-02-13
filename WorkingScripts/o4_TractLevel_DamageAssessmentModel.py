@@ -1,10 +1,10 @@
 import os
-import geopandas as gp
+import geopandas as gp    #used for handling geospatial Census Tract data
 import pandas as pd
-from scipy.stats import norm
+from scipy.stats import norm    #used to compute earthquake damage probability
 import numpy as np
 import time
-import config
+import config 
 
 # Import Spreadsheet with Hazus Building Type Breakdown per Tract
 bldg_percentages_by_tract_csv = r"..\Tables\Building_Percentages_Per_Tract_ALLSTATES.csv"
