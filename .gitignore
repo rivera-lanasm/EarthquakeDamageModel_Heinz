@@ -14,6 +14,9 @@ WorkingScripts/join_seis_code.py
 WorkingScripts/o4_Earthquake_GetHazusStructureType.py
 OriginalScripts.zip
 
+# temp files
+tmp/*
+
 # PyCharm
 .idea/
 
