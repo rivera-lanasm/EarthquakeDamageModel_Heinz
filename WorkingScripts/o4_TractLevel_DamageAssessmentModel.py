@@ -33,6 +33,24 @@ list_bldgtypes = dmgfvarsDF["BLDG_TYPE"].unique()
 
 def main(tracts_layer = "census_tract_max_mmi_pga_pgv_bldgcount", eventdir = config.IdahoEventDir):
 
+    '''
+    Performs earthquake damage assessment at the Census Tract level.
+
+    This function:
+    1. Loads Census Tract data containing earthquake shaking intensity and building counts from o3.
+    2. Uses General Building Stock (GBS) percentages to estimate the number of buildings per type.
+    3. Applies earthquake damage probability models to estimate damage levels for each structure.
+    4. Aggregates results to classify tracts by damage severity.
+    5. Saves the final damage assessment as a shapefile.
+
+    Args:
+        tracts_layer (str): Name of the geospatial layer with Census Tract data.
+        eventdir (str): Path to the earthquake event directory.
+
+    Returns:
+        Saves the damage assessment results as a shapefile.
+    '''
+    
     gdb = os.path.join(eventdir, "eqmodel_outputs.gdb")
 
     tracts = gp.read_file(gdb, layer = tracts_layer)
