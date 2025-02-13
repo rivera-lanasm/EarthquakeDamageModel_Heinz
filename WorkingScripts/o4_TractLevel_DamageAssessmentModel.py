@@ -10,6 +10,9 @@ import config
 bldg_percentages_by_tract_csv = r"..\Tables\Building_Percentages_Per_Tract_ALLSTATES.csv"
 bldg_percentages_by_tract_df = pd.read_csv(bldg_percentages_by_tract_csv)
 
+'''
+Ensures all Census Tract FIPS codes are properly formatted as 11-digit strings by adding leading zeros when needed
+'''
 #add leading zeroes to FIPS codes that do not have leading zeroes
 bldg_percentages_by_tract_df["Tract_str"] = bldg_percentages_by_tract_df["Tract"].apply(str)
 for fips in bldg_percentages_by_tract_df["Tract_str"].unique():
