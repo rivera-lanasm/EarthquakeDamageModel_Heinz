@@ -122,6 +122,10 @@ def clip_shakemap_to_tracts(shakemap_path, tracts_path, output_layer, GPKG_PATH)
     shakemap_gdf = gpd.read_file(shakemap_path)
     tracts_gdf = gpd.read_file(tracts_path)
 
+    # Convert both to the same CRS (WGS 84 - EPSG:4326)
+    shakemap_gdf = shakemap_gdf.to_crs(epsg=4326)
+    tracts_gdf = tracts_gdf.to_crs(epsg=4326)
+
     # Perform spatial intersection (clipping)
     clipped_gdf = gpd.overlay(shakemap_gdf, tracts_gdf, how="intersection")
 
@@ -131,7 +135,7 @@ def clip_shakemap_to_tracts(shakemap_path, tracts_path, output_layer, GPKG_PATH)
     print(f"Saved {output_layer} (clipped ShakeMap to tracts) to {GPKG_PATH}")
     return clipped_gdf
 
-def calculate_shakemap_statistics(shakemap_gdf, tracts_path, output_layer):
+def calculate_shakemap_statistics(shakemap_gdf, tracts_path, output_layer, GPKG_PATH):
     """
     Computes max, min, and mean intensity values for each tract using clipped ShakeMap data.
 
@@ -146,8 +150,26 @@ def calculate_shakemap_statistics(shakemap_gdf, tracts_path, output_layer):
     # tracts_gdf
     tracts_gdf = gpd.read_file(tracts_path)
 
-    # Perform spatial join to associate ShakeMap data with tracts
+    # Convert both to the same CRS before spatial join
+    shakemap_gdf = shakemap_gdf.to_crs(epsg=4326)
+    tracts_gdf = tracts_gdf.to_crs(epsg=4326)
+
+    # Get the set of overlapping columns
+    # common_cols = set(tracts_gdf.columns) & set(shakemap_gdf.columns)
+
+    # # Select common columns ONLY from `tracts_gdf`, plus `geometry`
+    # tracts_selected = tracts_gdf[list(common_cols) + ["geometry"]]
+
+    # # Select unique columns from `shakemap_gdf`, plus `PARAMVALUE`
+    # shakemap_selected = shakemap_gdf[[col for col in shakemap_gdf.columns if col not in common_cols or col == "PARAMVALUE"]]
+
+    # Perform spatial join
     joined_gdf = gpd.sjoin(tracts_gdf, shakemap_gdf, how="left", predicate="intersects")
+    # drop dupes
+    dupe_col = [val for val in joined_gdf.columns if "_right" in val]
+    joined_gdf = joined_gdf.drop(columns=dupe_col)
+    # rename
+    joined_gdf.columns = [val.replace("_left","") for val in joined_gdf.columns]
 
     # Aggregate statistics per tract
     aggregated = joined_gdf.groupby("GEOID").agg({
@@ -205,9 +227,11 @@ def shakemap_into_census_geo(eventdir):
     ####    Now that we've clipped ShakeMap data to census tracts, 
     #       the next step is to calculate statistical 
     #       summaries (max, min, mean) for each tract. 
-    calculate_shakemap_statistics(mi_clipped, Tracts, "tract_shakemap_mmi")
-    calculate_shakemap_statistics(pgv_clipped, Tracts, "tract_shakemap_pgv")
-    calculate_shakemap_statistics(pga_clipped, Tracts, "tract_shakemap_pga")
+    calculate_shakemap_statistics(mi_clipped, Tracts, "tract_shakemap_mmi", GPKG_PATH)
+    calculate_shakemap_statistics(pgv_clipped, Tracts, "tract_shakemap_pgv", GPKG_PATH)
+    calculate_shakemap_statistics(pga_clipped, Tracts, "tract_shakemap_pga", GPKG_PATH)
+
+    print(GPKG_PATH)
 
     return None
 
@@ -217,3 +241,15 @@ if __name__ == "__main__":
     """
     event_dir = r"C:\Users\river\CMU\rcross\EarthquakeDamageModel_Heinz\ShakeMaps\nc72282711"
     shakemap_into_census_geo(event_dir)
+
+    # Update with the actual path
+    GPKG_PATH = r"C:\Users\river\CMU\rcross\EarthquakeDamageModel_Heinz\ShakeMaps\nc72282711\eqmodel_outputs.gpkg"
+
+    # Read the layer you want to inspect
+    tract_shakemap_gdf = gpd.read_file(GPKG_PATH, layer="tract_shakemap_mmi")
+
+    # Print basic information
+    print(tract_shakemap_gdf.info())
+
+    # Show first few rows
+    print(tract_shakemap_gdf.head())
