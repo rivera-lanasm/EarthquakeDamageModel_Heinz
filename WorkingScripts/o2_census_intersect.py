@@ -63,35 +63,36 @@ def download_census_tracts(data_dir):
     Returns:
         str: Path to the extracted shapefile.
     """
-    url = "https://www2.census.gov/geo/tiger/TIGER2019/TRACT/tl_2019_us_tract.zip"
-    zip_path = os.path.join(data_dir, "tl_2019_us_tract.zip")
-    extract_path = os.path.join(data_dir, "tl_2019_us_tracts")
+    # url = "https://www2.census.gov/geo/tiger/TIGER2019/TRACT/tl_2019_us_tract.zip"
+    # zip_path = os.path.join(data_dir, "tl_2019_us_tract.zip")
+    extract_path = os.path.join(data_dir, "merged_shapefile", "Nationwide_Tracts.gpkg")
 
     # Check if already exists
     if os.path.exists(extract_path):
-        print("Census tracts shapefile already exists.")
-        return extract_path
+        print("Census tracts shapefile already exists {}".format(extract_path))
+        return extract_path #+ r"Nationwide_Tracts.gpkg"
     else:
         print("Census tracts shapefile not found at {}".format(extract_path))
+        raise ValueError
 
     # Download the file
-    print("Downloading Census Tracts shapefile...")
-    response = requests.get(url, stream=True)
-    response.raise_for_status()
+    # print("Downloading Census Tracts shapefile...")
+    # response = requests.get(url, stream=True)
+    # response.raise_for_status()
 
-    with open(zip_path, "wb") as f:
-        for chunk in response.iter_content(chunk_size=8192):
-            f.write(chunk)
+    # with open(zip_path, "wb") as f:
+    #     for chunk in response.iter_content(chunk_size=8192):
+    #         f.write(chunk)
 
-    # Extract the ZIP file
-    with zipfile.ZipFile(zip_path, "r") as zip_ref:
-        zip_ref.extractall(extract_path)
+    # # Extract the ZIP file
+    # with zipfile.ZipFile(zip_path, "r") as zip_ref:
+    #     zip_ref.extractall(extract_path)
 
-    # Remove the ZIP file after extraction
-    os.remove(zip_path)
+    # # Remove the ZIP file after extraction
+    # os.remove(zip_path)
 
-    print("Census tracts shapefile downloaded and extracted.")
-    return os.path.join(extract_path, "tl_2019_us_tract.shp")
+    # print("Census tracts shapefile downloaded and extracted.")
+    # return os.path.join(extract_path, "tl_2019_us_tract.shp")
 
 
 # Function to save GeoDataFrame to GeoPackage (Overwriting mode)
@@ -106,7 +107,7 @@ def save_to_geopackage(gdf, layer_name):
     gdf.to_file(GPKG_PATH, layer=layer_name, driver="GPKG", mode="w")
     print(f"Saved {layer_name} to {GPKG_PATH} (overwritten).")
 
-def clip_shakemap_to_tracts(shakemap_path, tracts_path, output_layer, GPKG_PATH):
+def clip_shakemap_to_tracts(shakemap_gdf, tracts_gdf, output_layer, GPKG_PATH):
     """
     Clips a ShakeMap layer to census tract boundaries using geopandas.
 
@@ -118,15 +119,17 @@ def clip_shakemap_to_tracts(shakemap_path, tracts_path, output_layer, GPKG_PATH)
     Returns:
         GeoDataFrame: Clipped GeoDataFrame.
     """
-    # Load the shapefiles
-    shakemap_gdf = gpd.read_file(shakemap_path)
-    tracts_gdf = gpd.read_file(tracts_path)
+    # # Load the shapefiles
+    # shakemap_gdf = gpd.read_file(shakemap_path)
+    # tracts_gdf = gpd.read_file(tracts_path)
 
     # Convert both to the same CRS (WGS 84 - EPSG:4326)
     shakemap_gdf = shakemap_gdf.to_crs(epsg=4326)
     tracts_gdf = tracts_gdf.to_crs(epsg=4326)
 
     # Perform spatial intersection (clipping)
+    print("===============CLIP")
+    print(gpd.clip(shakemap_gdf, tracts_gdf))
     clipped_gdf = gpd.overlay(shakemap_gdf, tracts_gdf, how="intersection")
 
     # Save to GeoPackage (overwrite mode)
@@ -135,7 +138,7 @@ def clip_shakemap_to_tracts(shakemap_path, tracts_path, output_layer, GPKG_PATH)
     print(f"Saved {output_layer} (clipped ShakeMap to tracts) to {GPKG_PATH}")
     return clipped_gdf
 
-def calculate_shakemap_statistics(shakemap_gdf, tracts_path, output_layer, GPKG_PATH):
+def calculate_shakemap_statistics(shakemap_gdf, tracts_gdf, output_layer, GPKG_PATH):
     """
     Computes max, min, and mean intensity values for each tract using clipped ShakeMap data.
 
@@ -148,7 +151,7 @@ def calculate_shakemap_statistics(shakemap_gdf, tracts_path, output_layer, GPKG_
         GeoDataFrame: Resulting GeoDataFrame with aggregated statistics.
     """
     # tracts_gdf
-    tracts_gdf = gpd.read_file(tracts_path)
+    # tracts_gdf = gpd.read_file(tracts_path)
 
     # Convert both to the same CRS before spatial join
     shakemap_gdf = shakemap_gdf.to_crs(epsg=4326)
@@ -196,8 +199,12 @@ def shakemap_into_census_geo(eventdir):
 
     mi, pgv, pga = get_shakemap_files(eventdir)
     print("mi: {}".format(mi))
+    mi_gpd = gpd.read_file(mi)
     print("pgv: {}".format(pgv))
+    pgv_gpd = gpd.read_file(pgv)
     print("pga: {}".format(pga))
+    pga_gpd = gpd.read_file(pga)
+    print(pga_gpd)
 
     # Extracts event ID from the directory path
     unique = eventdir.split("\\")[-1]  
@@ -207,29 +214,33 @@ def shakemap_into_census_geo(eventdir):
 
     # Get Census Tracts file (download if missing)
     Tracts = download_census_tracts(data_dir)
+    census_gpd = gpd.read_file(Tracts)
+    print(census_gpd)
 
     # Define the path for the GeoPackage
     GPKG_PATH = os.path.join(eventdir, "eqmodel_outputs.gpkg")
 
     # Check if the GeoPackage already exists
     if os.path.exists(GPKG_PATH):
-        print(f"GeoPackage already exists: {GPKG_PATH}")
+        print(f"---GeoPackage already exists: {GPKG_PATH}")
     else:
         print(f"Creating GeoPackage: {GPKG_PATH}")
         gdf = gpd.GeoDataFrame(columns=["geometry"])  # Create an empty GeoDataFrame
         gdf.to_file(GPKG_PATH, layer="init", driver="GPKG", mode="w")  # Save as an empty layer
 
     # Clip ShakeMap layers to census tracts
-    mi_clipped = clip_shakemap_to_tracts(mi, Tracts, "shakemap_tractclip_mmi", GPKG_PATH)
-    pgv_clipped = clip_shakemap_to_tracts(pgv, Tracts, "shakemap_tractclip_pgv", GPKG_PATH)
-    pga_clipped = clip_shakemap_to_tracts(pga, Tracts, "shakemap_tractclip_pga", GPKG_PATH)
+    mi_clipped = clip_shakemap_to_tracts(mi_gpd, census_gpd, "shakemap_tractclip_mmi", GPKG_PATH)
+    print("==================")
+    print(mi_clipped)
+    pgv_clipped = clip_shakemap_to_tracts(pgv_gpd, census_gpd, "shakemap_tractclip_pgv", GPKG_PATH)
+    pga_clipped = clip_shakemap_to_tracts(pga_gpd, census_gpd, "shakemap_tractclip_pga", GPKG_PATH)
 
     ####    Now that we've clipped ShakeMap data to census tracts, 
     #       the next step is to calculate statistical 
     #       summaries (max, min, mean) for each tract. 
-    calculate_shakemap_statistics(mi_clipped, Tracts, "tract_shakemap_mmi", GPKG_PATH)
-    calculate_shakemap_statistics(pgv_clipped, Tracts, "tract_shakemap_pgv", GPKG_PATH)
-    calculate_shakemap_statistics(pga_clipped, Tracts, "tract_shakemap_pga", GPKG_PATH)
+    calculate_shakemap_statistics(mi_clipped, census_gpd, "tract_shakemap_mmi", GPKG_PATH)
+    calculate_shakemap_statistics(pgv_clipped, census_gpd, "tract_shakemap_pgv", GPKG_PATH)
+    calculate_shakemap_statistics(pga_clipped, census_gpd, "tract_shakemap_pga", GPKG_PATH)
 
     print(GPKG_PATH)
 
@@ -246,6 +257,7 @@ if __name__ == "__main__":
     GPKG_PATH = r"C:\Users\river\CMU\rcross\EarthquakeDamageModel_Heinz\ShakeMaps\nc72282711\eqmodel_outputs.gpkg"
 
     # Read the layer you want to inspect
+    # tract_shakemap_mmi, tract_shakemap_pga, tract_shakemap_pgv --> same idea
     tract_shakemap_gdf = gpd.read_file(GPKG_PATH, layer="tract_shakemap_mmi")
 
     # Print basic information
@@ -253,3 +265,5 @@ if __name__ == "__main__":
 
     # Show first few rows
     print(tract_shakemap_gdf.head())
+    
+    print(tract_shakemap_gdf[~tract_shakemap_gdf["min_intensity"].isna()])
