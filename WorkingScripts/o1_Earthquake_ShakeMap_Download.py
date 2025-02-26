@@ -54,9 +54,17 @@ def check_for_shakemaps(mmi_threshold = 3):
     # Create variables
     pnt = arcpy.Point()
 
-    FEEDURL = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.geojson' #Significant Events - 1 week
+    # FEEDURL = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.geojson' #Significant Events - 1 week
     #FEEDURL = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_hour.geojson' #1 hour M4.5+
     #FEEDURL = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_day.geojson' #1 day M4.5+
+    # FEEDURL = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.geojson'
+    # FEEDURL = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_month.geojson'
+    # FEEDURL = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson'
+    # FEEDURL = 'https://earthquake.usgs.gov/fdsnws/event/1/query.geojson?maxlatitude=50&minlatitude=24.6&maxlongitude=-65&minlongitude=-125&minmagnitude=4.5&orderby=time&producttype=shakemap'
+    # FEEDURL = 'https://earthquake.usgs.gov/fdsnws/event/1/query.geojson?maxlatitude=50&minlatitude=24.6&maxlongitude=-65&minlongitude=-125&reviewstatus=reviewed&eventtype=earthquake&orderby=magnitude&producttype=shakemap'
+    # NAPA 2014 - CALIFORNIA
+    FEEDURL = 'https://earthquake.usgs.gov/fdsnws/event/1/query.geojson?starttime=2014-08-20%2000:00:00&endtime=2014-08-30%2000:00:00&maxlatitude=50&minlatitude=24.6&maxlongitude=-65&minlongitude=-125&minmagnitude=3&orderby=magnitude&producttype=shakemap'
+    # SPARTA NC
 
     # Get the list of event IDs in the current feed
     fh = urlopen(FEEDURL) #open a URL connection to the event feed.
@@ -83,7 +91,7 @@ def check_for_shakemaps(mmi_threshold = 3):
         fh.close()
         jdict2 = json.loads(data) #and parse using json module as before
         if jdict2['properties']['mag'] < mmi_threshold:
-            print('\nSkipping {}: mag < {}'.format(eventid, mmi_threshold))
+            print('\nSkipping {}: mag {} < {}'.format(eventid, jdict2['properties']['mag'], mmi_threshold))
             continue
         if not 'shakemap' in jdict2['properties']['products'].keys():
             print('\nSkipping {}: no shakemap available'.format(eventid))
@@ -97,15 +105,20 @@ def check_for_shakemaps(mmi_threshold = 3):
 
         shakemap = jdict2['properties']['products']['shakemap'][0] #get the first shakemap associated with the event
         shapezipurl = shakemap['contents']['download/shape.zip']['url'] #get the download url for the shape zipfile.
-        try:
-            epicenterurl = shakemap['contents']['download/epicenter.kmz']['url']
-        except:
-            print('\nSkipping {}: no epicenter available'.format(eventid))
-            continue
+        # try:
+        #     epicenterurl = shakemap['contents']['download/epicenter.kmz']['url']
+        # except:
+        #     print(shakemap["contents"])
+        #     print('\nSkipping {}: no epicenter available'.format(eventid))
+        #     print("")
+        #     epicenterurl = shakemap['contents']['download/epicenter.kmz']['url']
+        #     continue
 
+        print("===== FOUND ONE ========================")
+        print(earthquake)
+        print("eventid: {}".format(eventid))
 
-
-    ## EXTRACT SHAKEMAP ZIP FILE IN NEW FOLDER
+        ## EXTRACT SHAKEMAP ZIP FILE IN NEW FOLDER
 
         #Here, read the binary zipfile into a string
         fh = urlopen(shapezipurl)
@@ -175,9 +188,6 @@ def check_for_shakemaps(mmi_threshold = 3):
             curs = arcpy.da.InsertCursor("{}\Epicenter.shp".format(eventdir),["Title","Mag","Date_Time","Place","Depth_km","Url","EventID","Status","Updated"])
             curs.insertRow((title,mag,time_,place,depth,url,eventid,status,updated_))
             del curs
-
-
-
 
 
             # Add XY point Data to Epicenter shapefile
@@ -306,6 +316,8 @@ def check_for_shakemaps(mmi_threshold = 3):
             else:
 
                 print("\nShakeMap files for {} already exist and have not been updated.".format(eventid))
+            
+        break
 
     print("\nCompleted.")
 

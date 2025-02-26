@@ -11,15 +11,18 @@ import arcpy
 import os
 from get_file_paths import get_shakemap_dir
 from get_shakemap_files import get_shakemap_files
-import config
+# import config
 
 
-def shakemap_into_census_geo(eventdir = config.NapaEventDir):
+def shakemap_into_census_geo(eventdir): #  = config.NapaEventDir
 
     # ShakeMap GIS File Folder
     ShakeMapDir = get_shakemap_dir()
 
     mi, pgv, pga = get_shakemap_files(eventdir)
+    print("mi: {}".format(mi))
+    print("pgv: {}".format(pgv))
+    print("pga: {}".format(pga))
     unique = eventdir.split("\\")[-1]
 
     #Variables for Census Geographies
@@ -28,7 +31,12 @@ def shakemap_into_census_geo(eventdir = config.NapaEventDir):
     DetailCounties = os.path.join(os.path.dirname(os.getcwd()), 'Data', 'esri_2019_detailed_counties', '2019detailedcounties.shp')
 
     #Other layers/shapefiles
-    arcpy.management.CreateFileGDB(eventdir, "eqmodel_outputs")
+    print("eventdir: {}".format(eventdir))
+    try:
+        arcpy.management.CreateFileGDB(eventdir, "eqmodel_outputs")
+    except arcpy.ExecuteError:
+        print("eqmodel_outputs already exists in {}".format(eventdir))
+
     arcpy.env.workspace = os.path.join(eventdir, "eqmodel_outputs.gdb")
     GDB = os.path.join(eventdir, "eqmodel_outputs.gdb")
 
