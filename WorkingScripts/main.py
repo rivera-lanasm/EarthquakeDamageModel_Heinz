@@ -44,15 +44,11 @@ def main(testingmode = False):
     else:
         # if testing mode, use the napa 2014 shakemap
         print('testing mode')
-        # new_events = [config.NapaEventDir]
-        # new_events = [config.IdahoEventDir]
         new_events = [IdahoEventDir]
 
-    # TEMP
-    new_events = [r"C:\Users\river\CMU\rcross\EarthquakeDamageModel_Heinz\ShakeMaps\nc72282711"]
     for event in new_events:
         print('\nCensus Data Processing for: ', event)
-        # o2_Earthquake_ShakeMap_Into_CensusGeographies.shakemap_into_census_geo(eventdir = event)
+        o2_Earthquake_ShakeMap_Into_CensusGeographies.shakemap_into_census_geo(eventdir = event)
 
         print('\nGathering Building Outlines for: ', event)
         ORNL_LB_bldgs = o3_Earthquake_GetBldgCentroids.shakemap_get_bldgs(bldg_gdb=BuildingCentroids, eventdir = event)

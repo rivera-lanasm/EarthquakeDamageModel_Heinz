@@ -29,18 +29,15 @@ def shakemap_get_bldgs(bldg_gdb , eventdir ):
     GDB = os.path.join(eventdir, "eqmodel_outputs.gdb")
 
     # get list of intersecting states
-    state_names_list = unique_values(table=os.path.join(GDB, "census_county_max_mmi_pga_pgv"), 
-                                     field="STATE_NAME")
+    state_names_list = unique_values(table=os.path.join(GDB, "census_county_max_mmi_pga_pgv"), field="STATE_NAME")
     print("state_names_list: {}".format(state_names_list)) # this has len 1
     bldgs_output = os.path.join(GDB, "ORNL_LB_bldgs")
     print("bldgs_output: {}".format(bldgs_output))
-    print("bldgs_output feature count:", arcpy.GetCount_management(bldgs_output)[0])
+    # print("bldgs_output feature count:", arcpy.GetCount_management(bldgs_output)[0])
 
     # select building centroids that are within intersecting states and intersect them with shakemap
     remove_list = []
     for state in state_names_list:
-        # fc = os.path.join(bldg_gdb, state)
-        # fc = os.path.join(bldg_gdb, "{}_Structures".format(state))
         fc = os.path.join(bldg_gdb, "CA_Structures")  # Hardcode the correct name for now
 
         print("fc: {}".format(fc))
@@ -53,7 +50,6 @@ def shakemap_get_bldgs(bldg_gdb , eventdir ):
                 # that can be referenced by name in subsequent ArcPy functions.
             print("MakeFeatureLayer")
             arcpy.management.MakeFeatureLayer(fc, "{}_lyr".format(state))  # Use the corrected fc variable
-            # print("Active layers:", arcpy.ListLayers())
 
             # check both layers exist 
             print("Layer exists:", arcpy.Exists("{}_lyr".format(state)))
@@ -82,57 +78,56 @@ def shakemap_get_bldgs(bldg_gdb , eventdir ):
             print("Shakemap geometry type:", arcpy.Describe("shakemap_countyclip_mmi").shapeType)
             print("Building layer geometry type:", arcpy.Describe("{}_lyr".format(state)).shapeType)
 
-            # Check if the shakemap layer has any geometry issues
-            DataIssues = r"C:\Users\river\CMU\rcross\EarthquakeDamageModel_Heinz\Data\geometry_issues.txt"
-            arcpy.CheckGeometry_management("shakemap_countyclip_mmi", DataIssues)
-            print("Check geometry completed. See {} for issues.".format(DataIssues))
-
             # ---------------------------------------
             # Perform intersection test in GeoPandas
-            # Define the shapefile export directory inside the event folder
-            export_dir = os.path.join(eventdir, "exported_shapefiles")
-            # Ensure the directory exists
-            if not os.path.exists(export_dir):
-                os.makedirs(export_dir)
-            # Define shapefile paths
-            buildings_shp = os.path.join(export_dir, f"{state}_buildings.shp")
-            shakemap_shp = os.path.join(export_dir, "shakemap.shp")
-            # Export selected buildings and shakemap layer as shapefiles
-            arcpy.CopyFeatures_management("{}_lyr".format(state), buildings_shp)
-            arcpy.CopyFeatures_management("shakemap_countyclip_mmi", shakemap_shp)
-            print(f"Shapefiles exported:\n- Buildings: {buildings_shp}\n- Shakemap: {shakemap_shp}")
-            # Load the shapefiles using the correct paths
-            buildings = gpd.read_file(buildings_shp)
-            shakemap = gpd.read_file(shakemap_shp)
-            # Ensure both datasets use the same coordinate system
-            buildings = buildings.to_crs(shakemap.crs)
-            # Perform spatial intersection
-            intersecting_buildings = gpd.sjoin(buildings, shakemap, how="inner", predicate="intersects")
-            # Print results
-            print("Total buildings:", len(buildings))
-            print("Buildings intersecting shakemap:", len(intersecting_buildings))
+            if False:
+                # Define the shapefile export directory inside the event folder
+                export_dir = os.path.join(eventdir, "exported_shapefiles")
+                # Ensure the directory exists
+                if not os.path.exists(export_dir):
+                    os.makedirs(export_dir)
+                # Define shapefile paths
+                buildings_shp = os.path.join(export_dir, f"{state}_buildings.shp")
+                print("buildings_shp {}".format(buildings_shp))
+                shakemap_shp = os.path.join(export_dir, "shakemap.shp")
+                print("shakemap_shp {}".format(shakemap_shp))
+                # Export selected buildings and shakemap layer as shapefiles
+                arcpy.CopyFeatures_management("{}_lyr".format(state), buildings_shp)
+                print("exported build shp")
+                arcpy.CopyFeatures_management("shakemap_countyclip_mmi", shakemap_shp)
+                print(f"Shapefiles exported:\n- Buildings: {buildings_shp}\n- Shakemap: {shakemap_shp}")
+                # Load the shapefiles using the correct paths
+                buildings = gpd.read_file(buildings_shp)
+                shakemap = gpd.read_file(shakemap_shp)
+                # Ensure both datasets use the same coordinate system
+                buildings = buildings.to_crs(shakemap.crs)
+                # Perform spatial intersection
+                intersecting_buildings = gpd.sjoin(buildings, shakemap, how="inner", predicate="intersects")
+                # Print results
+                print("Total buildings:", len(buildings))
+                print("Buildings intersecting shakemap:", len(intersecting_buildings))
 
 
             print("SelectLayerByLocation")
-            arcpy.management.SelectLayerByLocation("{}_lyr".format(state), 
-                                                   'INTERSECT', 
-                                                   "shakemap_countyclip_mmi", 
-                                                   "", 
-                                                   "NEW_SELECTION")
-
             # arcpy.management.SelectLayerByLocation("{}_lyr".format(state), 
-            #                                     'WITHIN_A_DISTANCE', 
-            #                                     "shakemap_countyclip_mmi", 
-            #                                     "100 Meters", 
-            #                                     "NEW_SELECTION")
+            #                                        'INTERSECT', 
+            #                                        "shakemap_countyclip_mmi", 
+            #                                        "", 
+            #                                        "NEW_SELECTION")
+
+            arcpy.management.SelectLayerByLocation("{}_lyr".format(state), 
+                                                'WITHIN_A_DISTANCE', 
+                                                "shakemap_countyclip_mmi", 
+                                                "100 Meters", 
+                                                "NEW_SELECTION")
+
+            # check for intersection
+            print("Selected building count:", arcpy.GetCount_management("{}_lyr".format(state))[0])
+
 
         else:
             remove_list.append(state)
             print("DOES NOT EXISTS, fc {}".format(fc))
-
-    # if len(remove_list) >= 1:
-    #     for x in remove_list:
-    #         state_names_list.remove(x)
 
     if len(state_names_list) > 1:
         #merge

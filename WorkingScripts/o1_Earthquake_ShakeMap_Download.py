@@ -54,7 +54,7 @@ def check_for_shakemaps(mmi_threshold = 3):
     # Create variables
     pnt = arcpy.Point()
 
-    # FEEDURL = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.geojson' #Significant Events - 1 week
+    FEEDURL = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.geojson' #Significant Events - 1 week
     #FEEDURL = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_hour.geojson' #1 hour M4.5+
     #FEEDURL = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_day.geojson' #1 day M4.5+
     # FEEDURL = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.geojson'
@@ -63,7 +63,7 @@ def check_for_shakemaps(mmi_threshold = 3):
     # FEEDURL = 'https://earthquake.usgs.gov/fdsnws/event/1/query.geojson?maxlatitude=50&minlatitude=24.6&maxlongitude=-65&minlongitude=-125&minmagnitude=4.5&orderby=time&producttype=shakemap'
     # FEEDURL = 'https://earthquake.usgs.gov/fdsnws/event/1/query.geojson?maxlatitude=50&minlatitude=24.6&maxlongitude=-65&minlongitude=-125&reviewstatus=reviewed&eventtype=earthquake&orderby=magnitude&producttype=shakemap'
     # NAPA 2014 - CALIFORNIA
-    FEEDURL = 'https://earthquake.usgs.gov/fdsnws/event/1/query.geojson?starttime=2014-08-20%2000:00:00&endtime=2014-08-30%2000:00:00&maxlatitude=50&minlatitude=24.6&maxlongitude=-65&minlongitude=-125&minmagnitude=3&orderby=magnitude&producttype=shakemap'
+    DEFAULT_FEEDURL = 'https://earthquake.usgs.gov/fdsnws/event/1/query.geojson?starttime=2014-08-20%2000:00:00&endtime=2014-08-30%2000:00:00&maxlatitude=50&minlatitude=24.6&maxlongitude=-65&minlongitude=-125&minmagnitude=3&orderby=magnitude&producttype=shakemap'
     # SPARTA NC
 
     # Get the list of event IDs in the current feed
