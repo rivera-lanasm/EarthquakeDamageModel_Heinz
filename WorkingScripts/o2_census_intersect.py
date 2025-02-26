@@ -16,6 +16,7 @@ County Shapefile (tl_2019_us_county.shp)
 
 import os 
 import geopandas as gpd
+import requests
 
 def get_shakemap_files(eventdir):
     """
@@ -67,9 +68,11 @@ def download_census_tracts(data_dir):
     extract_path = os.path.join(data_dir, "tl_2019_us_tracts")
 
     # Check if already exists
-    if os.path.exists(os.path.join(extract_path, "tl_2019_us_tract.shp")):
+    if os.path.exists(extract_path):
         print("Census tracts shapefile already exists.")
-        return os.path.join(extract_path, "tl_2019_us_tract.shp")
+        return extract_path
+    else:
+        print("Census tracts shapefile not found at {}".format(extract_path))
 
     # Download the file
     print("Downloading Census Tracts shapefile...")
@@ -90,43 +93,6 @@ def download_census_tracts(data_dir):
     print("Census tracts shapefile downloaded and extracted.")
     return os.path.join(extract_path, "tl_2019_us_tract.shp")
 
-def download_detailed_counties(data_dir):
-    """
-    Downloads and extracts the 2019 Detailed Counties shapefile if it does not exist.
-
-    Args:
-        data_dir (str): Path to the directory where the shapefile should be stored.
-
-    Returns:
-        str: Path to the extracted shapefile.
-    """
-    url = "https://www2.census.gov/geo/tiger/TIGER2019/COUNTY/tl_2019_us_county.zip"
-    zip_path = os.path.join(data_dir, "tl_2019_us_county.zip")
-    extract_path = os.path.join(data_dir, "esri_2019_detailed_counties")
-
-    # Check if already exists
-    if os.path.exists(os.path.join(extract_path, "tl_2019_us_county.shp")):
-        print("Detailed counties shapefile already exists.")
-        return os.path.join(extract_path, "tl_2019_us_county.shp")
-
-    # Download the file
-    print("Downloading Detailed Counties shapefile...")
-    response = requests.get(url, stream=True)
-    response.raise_for_status()
-
-    with open(zip_path, "wb") as f:
-        for chunk in response.iter_content(chunk_size=8192):
-            f.write(chunk)
-
-    # Extract the ZIP file
-    with zipfile.ZipFile(zip_path, "r") as zip_ref:
-        zip_ref.extractall(extract_path)
-
-    # Remove the ZIP file after extraction
-    os.remove(zip_path)
-
-    print("Detailed counties shapefile downloaded and extracted.")
-    return os.path.join(extract_path, "tl_2019_us_county.shp")
 
 # Function to save GeoDataFrame to GeoPackage (Overwriting mode)
 def save_to_geopackage(gdf, layer_name):
@@ -140,7 +106,7 @@ def save_to_geopackage(gdf, layer_name):
     gdf.to_file(GPKG_PATH, layer=layer_name, driver="GPKG", mode="w")
     print(f"Saved {layer_name} to {GPKG_PATH} (overwritten).")
 
-def clip_shakemap_to_tracts(shakemap_path, tracts_path, output_layer):
+def clip_shakemap_to_tracts(shakemap_path, tracts_path, output_layer, GPKG_PATH):
     """
     Clips a ShakeMap layer to census tract boundaries using geopandas.
 
@@ -165,6 +131,42 @@ def clip_shakemap_to_tracts(shakemap_path, tracts_path, output_layer):
     print(f"Saved {output_layer} (clipped ShakeMap to tracts) to {GPKG_PATH}")
     return clipped_gdf
 
+def calculate_shakemap_statistics(shakemap_gdf, tracts_path, output_layer):
+    """
+    Computes max, min, and mean intensity values for each tract using clipped ShakeMap data.
+
+    Args:
+        shakemap_gdf (GeoDataFrame): Clipped ShakeMap data (mi, pga, or pgv).
+        tracts_gdf (GeoDataFrame): Census tract boundaries.
+        output_layer (str): Name of the output layer in the GeoPackage.
+
+    Returns:
+        GeoDataFrame: Resulting GeoDataFrame with aggregated statistics.
+    """
+    # tracts_gdf
+    tracts_gdf = gpd.read_file(tracts_path)
+
+    # Perform spatial join to associate ShakeMap data with tracts
+    joined_gdf = gpd.sjoin(tracts_gdf, shakemap_gdf, how="left", predicate="intersects")
+
+    # Aggregate statistics per tract
+    aggregated = joined_gdf.groupby("GEOID").agg({
+        "PARAMVALUE": ["max", "min", "mean"],  # Compute max, min, and mean intensity values
+        "geometry": "first"  # Keep the first geometry per tract
+    }).reset_index()
+
+    # Flatten column names
+    aggregated.columns = ["GEOID", "max_intensity", "min_intensity", "mean_intensity", "geometry"]
+
+    # Convert back to GeoDataFrame
+    aggregated_gdf = gpd.GeoDataFrame(aggregated, geometry="geometry", crs=tracts_gdf.crs)
+
+    # Save to GeoPackage (overwrite mode)
+    aggregated_gdf.to_file(GPKG_PATH, layer=output_layer, driver="GPKG", mode="w")
+
+    print(f"Saved {output_layer} (tract-level ShakeMap statistics) to {GPKG_PATH}")
+    return aggregated_gdf
+
 
 def shakemap_into_census_geo(eventdir):
     # ShakeMap GIS File Folder
@@ -179,7 +181,7 @@ def shakemap_into_census_geo(eventdir):
     unique = eventdir.split("\\")[-1]  
 
     # Set data directory
-    data_dir = os.path.join(os.path.dirname(os.getcwd()), 'Data')
+    data_dir = os.path.join(os.getcwd(), 'Data')
 
     # Get Census Tracts file (download if missing)
     Tracts = download_census_tracts(data_dir)
@@ -196,17 +198,22 @@ def shakemap_into_census_geo(eventdir):
         gdf.to_file(GPKG_PATH, layer="init", driver="GPKG", mode="w")  # Save as an empty layer
 
     # Clip ShakeMap layers to census tracts
-    mi_clipped = clip_shakemap_to_tracts(mi, Tracts, "shakemap_tractclip_mmi")
-    pgv_clipped = clip_shakemap_to_tracts(pgv, Tracts, "shakemap_tractclip_pgv")
-    pga_clipped = clip_shakemap_to_tracts(pga, Tracts, "shakemap_tractclip_pga")
+    mi_clipped = clip_shakemap_to_tracts(mi, Tracts, "shakemap_tractclip_mmi", GPKG_PATH)
+    pgv_clipped = clip_shakemap_to_tracts(pgv, Tracts, "shakemap_tractclip_pgv", GPKG_PATH)
+    pga_clipped = clip_shakemap_to_tracts(pga, Tracts, "shakemap_tractclip_pga", GPKG_PATH)
 
     ####    Now that we've clipped ShakeMap data to census tracts, 
     #       the next step is to calculate statistical 
-    #       summaries (max, min, mean) for each tract.    
+    #       summaries (max, min, mean) for each tract. 
+    calculate_shakemap_statistics(mi_clipped, Tracts, "tract_shakemap_mmi")
+    calculate_shakemap_statistics(pgv_clipped, Tracts, "tract_shakemap_pgv")
+    calculate_shakemap_statistics(pga_clipped, Tracts, "tract_shakemap_pga")
 
+    return None
 
 if __name__ == "__main__":
     """
     show stats for 2014 napa valley 
     """
-    pass
+    event_dir = r"C:\Users\river\CMU\rcross\EarthquakeDamageModel_Heinz\ShakeMaps\nc72282711"
+    shakemap_into_census_geo(event_dir)
