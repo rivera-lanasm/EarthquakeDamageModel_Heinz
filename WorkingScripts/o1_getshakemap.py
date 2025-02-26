@@ -1,9 +1,15 @@
+"""
+Earthquake ShakeMap Retrieval and Processing Module
+
+This module:
+- fetches earthquake data from specified USGS GeoJSON feed
+- filters events based on magnitude and location, 
+- downloads ShakeMap shapefiles (mi, pga, pgv) 
+- relevant human readable JSON metadata is saved for each event (location, etc)
+    - Magnitude, location, time, depth, USGS event URL
 
 """
 
-sample run call:
-C:\Users\river\AppData\Local\ESRI\conda\envs\arcgispro-py3-heinz\python.exe .\WorkingScripts\o1_getshakemap.py
-"""
 
 import requests
 import json
@@ -12,7 +18,6 @@ import zipfile
 import io
 import datetime
 import geopandas as gpd 
-import json
 
 SHAKEMAP_DIR = "{}\ShakeMaps".format(os.getcwd())
 
