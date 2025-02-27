@@ -128,8 +128,6 @@ def clip_shakemap_to_tracts(shakemap_gdf, tracts_gdf, output_layer, GPKG_PATH):
     tracts_gdf = tracts_gdf.to_crs(epsg=4326)
 
     # Perform spatial intersection (clipping)
-    print("===============CLIP")
-    print(gpd.clip(shakemap_gdf, tracts_gdf))
     clipped_gdf = gpd.overlay(shakemap_gdf, tracts_gdf, how="intersection")
 
     # Save to GeoPackage (overwrite mode)
@@ -167,7 +165,7 @@ def calculate_shakemap_statistics(shakemap_gdf, tracts_gdf, output_layer, GPKG_P
     # shakemap_selected = shakemap_gdf[[col for col in shakemap_gdf.columns if col not in common_cols or col == "PARAMVALUE"]]
 
     # Perform spatial join
-    joined_gdf = gpd.sjoin(tracts_gdf, shakemap_gdf, how="left", predicate="intersects")
+    joined_gdf = gpd.sjoin(tracts_gdf, shakemap_gdf, how="inner", predicate="intersects")
     # drop dupes
     dupe_col = [val for val in joined_gdf.columns if "_right" in val]
     joined_gdf = joined_gdf.drop(columns=dupe_col)
@@ -204,7 +202,6 @@ def shakemap_into_census_geo(eventdir):
     pgv_gpd = gpd.read_file(pgv)
     print("pga: {}".format(pga))
     pga_gpd = gpd.read_file(pga)
-    print(pga_gpd)
 
     # Extracts event ID from the directory path
     unique = eventdir.split("\\")[-1]  
@@ -215,7 +212,6 @@ def shakemap_into_census_geo(eventdir):
     # Get Census Tracts file (download if missing)
     Tracts = download_census_tracts(data_dir)
     census_gpd = gpd.read_file(Tracts)
-    print(census_gpd)
 
     # Define the path for the GeoPackage
     GPKG_PATH = os.path.join(eventdir, "eqmodel_outputs.gpkg")
@@ -230,8 +226,6 @@ def shakemap_into_census_geo(eventdir):
 
     # Clip ShakeMap layers to census tracts
     mi_clipped = clip_shakemap_to_tracts(mi_gpd, census_gpd, "shakemap_tractclip_mmi", GPKG_PATH)
-    print("==================")
-    print(mi_clipped)
     pgv_clipped = clip_shakemap_to_tracts(pgv_gpd, census_gpd, "shakemap_tractclip_pgv", GPKG_PATH)
     pga_clipped = clip_shakemap_to_tracts(pga_gpd, census_gpd, "shakemap_tractclip_pga", GPKG_PATH)
 
@@ -241,8 +235,6 @@ def shakemap_into_census_geo(eventdir):
     calculate_shakemap_statistics(mi_clipped, census_gpd, "tract_shakemap_mmi", GPKG_PATH)
     calculate_shakemap_statistics(pgv_clipped, census_gpd, "tract_shakemap_pgv", GPKG_PATH)
     calculate_shakemap_statistics(pga_clipped, census_gpd, "tract_shakemap_pga", GPKG_PATH)
-
-    print(GPKG_PATH)
 
     return None
 

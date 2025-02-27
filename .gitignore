@@ -152,3 +152,12 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+
+# other 
+Data/census_shp/*
+Data/extracted_census_shp/*
+Data/merged_shapefile/*
+GDAL-3.4.3-cp311-cp311-win_amd64.whl
+earthquake_env/*
+
