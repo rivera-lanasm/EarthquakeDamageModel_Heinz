@@ -6,14 +6,23 @@ import glob
 import geopandas as gpd
 import pandas as pd
 
+# This snippet requires geopandas 0.14.4 to run smoothly
+# if you have older versions, please update
+# pip install geopandas == 0.14.
+
 if __name__ == "__main__":
     # URL to the Census TIGER/TRACT 2019 directory
     base_url = "https://www2.census.gov/geo/tiger/TIGER2019/TRACT/"
 
+    parent_dir = os.path.dirname(os.getcwd())
     # Local directories
-    download_folder = r"C:\Users\river\CMU\rcross\EarthquakeDamageModel_Heinz\Data\census_shp"
-    extracted_folder = r"C:\Users\river\CMU\rcross\EarthquakeDamageModel_Heinz\Data\extracted_census_shp"
-    merged_shapefile_folder = r"C:\Users\river\CMU\rcross\EarthquakeDamageModel_Heinz\Data\merged_shapefile"
+    download_folder = os.path.join(parent_dir, "Data", "census_shp")
+    extracted_folder = os.path.join(parent_dir, "Data", "extracted_census_shp")
+    merged_shapefile_folder = os.path.join(parent_dir, "Data", "merged_shapefile")
+    #r"C:\Users\river\CMU\rcross\EarthquakeDamageModel_Heinz\Data\census_shp"
+    #extracted_folder = r"C:\Users\river\CMU\rcross\EarthquakeDamageModel_Heinz\Data\extracted_census_shp"
+    #merged_shapefile_folder = r"C:\Users\river\CMU\rcross\EarthquakeDamageModel_Heinz\Data\merged_shapefile"
+    
     output_gpkg = os.path.join(merged_shapefile_folder, "Nationwide_Tracts.gpkg")
 
     # Ensure directories exist
@@ -50,7 +59,9 @@ if __name__ == "__main__":
         else:
             print(f"Failed to download {zip_file}")
 
-        if i > 2:  # Limit for testing
+        # this limit the number of files downloaded for testing
+        # remove this line to download all files
+        if i > 3:  # Limit for testing
             break
     print("All downloads completed successfully!")
 

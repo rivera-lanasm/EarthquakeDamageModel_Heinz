@@ -28,27 +28,32 @@ def get_shakemap_files(eventdir):
     Returns:
         tuple: Paths to 'mi.shp', 'pgv.shp', and 'pga.shp' files.
     """
-    
-    mi = "{}\mi.shp".format(eventdir)
-    pgv = "{}\pgv.shp".format(eventdir)
-    pga = "{}\pga.shp".format(eventdir)
+    mi = os.path.join(eventdir, "mi.shp")
+    pgv = os.path.join(eventdir, "pgv.shp")
+    pga = os.path.join(eventdir, "pga.shp")
+
+    # mi = "{}\mi.shp".format(eventdir)
+    # pgv = "{}\pgv.shp".format(eventdir)
+    # pga = "{}\pga.shp".format(eventdir)
     return mi, pgv, pga
 
 def get_shakemap_dir():
-    """
-    ensures that the ShakeMaps/ directory exists and returns its path.
-    """
     # Set file path to save ShakeMap zip files to
 
     # Check if a directory named "ShakeMaps" exists in the parent directory of the current working directory.
     # If the "ShakeMaps" directory exists, assign its path to the variable ShakeMapDir.
-    if os.path.exists(os.path.join(os.path.dirname(os.getcwd()), 'ShakeMaps')):
-        ShakeMapDir = os.path.join(os.path.dirname(os.getcwd()), 'ShakeMaps')
+
+    # yusuf: I think this should look for the parent directory first
+    # and then the current directory.  I think this is what you want.
+    parent_dir = os.path.dirname(os.getcwd())
+    shakemap_dir = os.path.join(parent_dir, 'ShakeMaps')
+    if os.path.exists(shakemap_dir):
+        ShakeMapDir = shakemap_dir
 
     # If the "ShakeMaps" directory does not exist, create the directory and assign the path to the variable ShakeMapDir
     else:
-        os.mkdir(os.path.join(os.path.dirname(os.getcwd()), 'ShakeMaps'))
-        ShakeMapDir = os.path.join(os.path.dirname(os.getcwd()), 'ShakeMaps')
+        os.mkdir(shakemap_dir)
+        ShakeMapDir = shakemap_dir
 
     return ShakeMapDir
 
@@ -210,7 +215,8 @@ def shakemap_into_census_geo(eventdir):
     unique = eventdir.split("\\")[-1]  
 
     # Set data directory
-    data_dir = os.path.join(os.getcwd(), 'Data')
+    parent_dir = os.path.dirname(os.getcwd())
+    data_dir = os.path.join(parent_dir, 'Data')
 
     # Get Census Tracts file (download if missing)
     Tracts = download_census_tracts(data_dir)
@@ -250,11 +256,16 @@ if __name__ == "__main__":
     """
     show stats for 2014 napa valley 
     """
-    event_dir = r"C:\Users\river\CMU\rcross\EarthquakeDamageModel_Heinz\ShakeMaps\nc72282711"
+    parent_dir = os.path.dirname(os.getcwd())
+    event_dir = os.path.join(parent_dir, 'ShakeMaps', 'nc72282711')
+    
+    #event_dir = r"C:\Users\river\CMU\rcross\EarthquakeDamageModel_Heinz\ShakeMaps\nc72282711"
     shakemap_into_census_geo(event_dir)
 
     # Update with the actual path
-    GPKG_PATH = r"C:\Users\river\CMU\rcross\EarthquakeDamageModel_Heinz\ShakeMaps\nc72282711\eqmodel_outputs.gpkg"
+    GPKG_PATH = os.path.join(event_dir, "eqmodel_outputs.gpkg")
+    
+    # GPKG_PATH = r"C:\Users\river\CMU\rcross\EarthquakeDamageModel_Heinz\ShakeMaps\nc72282711\eqmodel_outputs.gpkg"
 
     # Read the layer you want to inspect
     # tract_shakemap_mmi, tract_shakemap_pga, tract_shakemap_pgv --> same idea
