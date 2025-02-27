@@ -4,6 +4,7 @@ Data/IRC_2006_2009/
 Data/tl_2019_us_county/
 Data/tl_2019_us_tracts/2019*
 Data/usa_states/
+Data/*
 do_not_push/
 OriginalScripts/
 ShakeMaps/*
@@ -152,3 +153,12 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+
+# other 
+Data/census_shp/*
+Data/extracted_census_shp/*
+Data/merged_shapefile/*
+GDAL-3.4.3-cp311-cp311-win_amd64.whl
+earthquake_env/*
+
