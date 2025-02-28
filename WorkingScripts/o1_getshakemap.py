@@ -19,7 +19,10 @@ import io
 import datetime
 import geopandas as gpd 
 
-SHAKEMAP_DIR = "{}\ShakeMaps".format(os.getcwd())
+# yusuf: I think you want a parent directory firs
+# SHAKEMAP_DIR = "{}\ShakeMaps".format(os.getcwd())
+parent_dir = os.path.dirname(os.getcwd())
+SHAKEMAP_DIR = os.path.join(parent_dir, 'ShakeMaps')
 
 FEEDURL = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.geojson' #Significant Events - 1 week
 DEFAULT_FEEDURL = 'https://earthquake.usgs.gov/fdsnws/event/1/query.geojson?starttime=2014-08-20%2000:00:00&endtime=2014-08-30%2000:00:00&maxlatitude=50&minlatitude=24.6&maxlongitude=-65&minlongitude=-125&minmagnitude=3&orderby=magnitude&producttype=shakemap'
@@ -46,13 +49,17 @@ def get_shakemap_dir():
 
     # Check if a directory named "ShakeMaps" exists in the parent directory of the current working directory.
     # If the "ShakeMaps" directory exists, assign its path to the variable ShakeMapDir.
-    if os.path.exists(os.path.join(os.path.dirname(os.getcwd()), 'ShakeMaps')):
-        ShakeMapDir = os.path.join(os.path.dirname(os.getcwd()), 'ShakeMaps')
+
+    # yusuf: I think this should look for the parent directory first
+    # and then the current directory.  I think this is what you want.
+    parent_dir = os.path.dirname(os.getcwd())
+    if os.path.exists(parent_dir, 'ShakeMaps'):
+        ShakeMapDir = os.path.join(parent_dir, 'ShakeMaps')
 
     # If the "ShakeMaps" directory does not exist, create the directory and assign the path to the variable ShakeMapDir
     else:
-        os.mkdir(os.path.join(os.path.dirname(os.getcwd()), 'ShakeMaps'))
-        ShakeMapDir = os.path.join(os.path.dirname(os.getcwd()), 'ShakeMaps')
+        os.mkdir(os.path.join(parent_dir, 'ShakeMaps'))
+        ShakeMapDir = os.path.join(parent_dir, 'ShakeMaps')
 
     return ShakeMapDir
 

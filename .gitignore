@@ -4,6 +4,7 @@ Data/IRC_2006_2009/
 Data/tl_2019_us_county/
 Data/tl_2019_us_tracts/2019*
 Data/usa_states/
+Data/*
 do_not_push/
 OriginalScripts/
 ShakeMaps/*

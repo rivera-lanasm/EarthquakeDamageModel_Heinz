@@ -6,6 +6,9 @@ This script integrates earthquake ShakeMap data with U.S. Census geographic boun
 Using helper functions this script determines and joins maximum, minimum, and mean values of
 earthquake intensity metrics (MMI, PGA, PGV) to each county and each tract
 
+removing county data
+- If we only care about tract-level PGA, PGV, and MMI, county data is NOT necessary.
+
 """
 import arcpy
 import os
