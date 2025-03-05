@@ -61,8 +61,8 @@ if __name__ == "__main__":
 
         # this limit the number of files downloaded for testing
         # remove this line to download all files
-        if i > 3:  # Limit for testing
-            break
+        # if i > 3:  # Limit for testing
+        #    break
     print("All downloads completed successfully!")
 
     # 2) Extract all zip files
