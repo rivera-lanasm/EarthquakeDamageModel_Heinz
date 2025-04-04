@@ -50,7 +50,8 @@ def retrieve_event_data(jdict):
     magnitude = jdict["properties"]["mag"]
     # Check if ShakeMap exists
     if "shakemap" not in jdict["properties"]["products"]:
-        print(f"Skipping {eventid}: No ShakeMap available.")
+        print(f"Issue: {eventid}: No ShakeMap available.")
+        print("Please check the event ID and try again")
         raise ValueError
     # retrieve lat/lon
     lon, lat = jdict["geometry"]["coordinates"][:2]
@@ -117,6 +118,7 @@ def download_and_extract_shakemap(event):
 
     # Remove the ZIP file after extraction
     os.remove(zip_path)
+    print(f"Success! Downloaded ShakeMap for event {eventid}...")
 
     return event_folder  # Return the extracted folder path
 
