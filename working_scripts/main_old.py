@@ -14,7 +14,7 @@ This script offers two main modes:
 import os
 import time
         
-import o1_Earthquake_ShakeMap_Download
+import old_code.o1_Earthquake_ShakeMap_Download as o1_Earthquake_ShakeMap_Download
 import o2_Earthquake_ShakeMap_Into_CensusGeographies
 import o3_Earthquake_GetBldgCentroids
 import o4_TractLevel_DamageAssessmentModel
