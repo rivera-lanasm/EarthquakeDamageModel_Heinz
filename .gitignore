@@ -7,7 +7,18 @@ Data/merged_shapefile
 
 # Shakemaps
 ShakeMaps/*
+tables/lightbox*
+WorkingScripts/FEMA_Analysis_Tools*
+WorkingScripts/get_seismic_design_code.py
+WorkingScripts/join_seis_code.py
+WorkingScripts/o4_Earthquake_GetHazusStructureType.py
+OriginalScripts.zip
+Data/*
+WorkingScripts/Data/*
+# temp files
+tmp/*
 ShakeMaps_Testing/*
 
 # Other
 data_utils/*
+working_scripts/__pycache__/*
