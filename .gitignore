@@ -21,3 +21,4 @@ ShakeMaps_Testing/*
 
 # Other
 data_utils/*
+working_scripts/__pycache__/*

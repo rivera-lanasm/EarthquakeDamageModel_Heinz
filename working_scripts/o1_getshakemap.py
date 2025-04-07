@@ -87,8 +87,8 @@ def download_and_extract_shakemap(event):
 
     # Check if the event folder already exists (we do NOT overwrite)
     if os.path.exists(event_folder):
-        print(f"Skipping {eventid}: ShakeMap already downloaded.")
-        raise ValueError
+        print(f"{eventid}: ShakeMap already downloaded.")
+        return event_folder
 
     # Ensure base directory exists
     os.makedirs(event_folder, exist_ok=True)

@@ -47,7 +47,6 @@ def read_event_data(eventid = 'nc72282711'):
 
 # # READ BUILDING DATA
 
-# In[57]:
 
 
 # Check if a csv file for a state is exists

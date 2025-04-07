@@ -6,23 +6,15 @@ import glob
 import geopandas as gpd
 import pandas as pd
 
-# This snippet requires geopandas 0.14.4 to run smoothly
-# if you have older versions, please update
-# pip install geopandas == 0.14.
+# URL to the Census TIGER/TRACT 2019 directory
+BASE_URL = "https://www2.census.gov/geo/tiger/TIGER2024/TRACT/"
 
-if __name__ == "__main__":
-    # URL to the Census TIGER/TRACT 2019 directory
-    base_url = "https://www2.census.gov/geo/tiger/TIGER2019/TRACT/"
+def download_census():
 
-    parent_dir = os.path.dirname(os.getcwd())
     # Local directories
-    download_folder = os.path.join(parent_dir, "Data", "census_shp")
-    extracted_folder = os.path.join(parent_dir, "Data", "extracted_census_shp")
-    merged_shapefile_folder = os.path.join(parent_dir, "Data", "merged_shapefile")
-    #r"C:\Users\river\CMU\rcross\EarthquakeDamageModel_Heinz\Data\census_shp"
-    #extracted_folder = r"C:\Users\river\CMU\rcross\EarthquakeDamageModel_Heinz\Data\extracted_census_shp"
-    #merged_shapefile_folder = r"C:\Users\river\CMU\rcross\EarthquakeDamageModel_Heinz\Data\merged_shapefile"
-    
+    download_folder = os.path.join(os.getcwd(), "Data", "census_shp")
+    extracted_folder = os.path.join(os.getcwd(), "Data", "extracted_census_shp")
+    merged_shapefile_folder = os.path.join(os.getcwd(), "Data", "merged_shapefile")
     output_gpkg = os.path.join(merged_shapefile_folder, "Nationwide_Tracts.gpkg")
 
     # Ensure directories exist
@@ -31,21 +23,23 @@ if __name__ == "__main__":
     os.makedirs(merged_shapefile_folder, exist_ok=True)
 
     # Fetch the webpage content
-    response = requests.get(base_url)
+    print("attempting to link to {}".format(BASE_URL))
+    response = requests.get(BASE_URL)
     if response.status_code != 200:
-        raise Exception(f"Failed to access {base_url}")
-
+        print("Failed to access {} --> response code {}".format(BASE_URL, response.status_code))
+        raise ValueError
+    else:
+        print("parsing...")
     # Parse the HTML content using BeautifulSoup
     soup = BeautifulSoup(response.text, "html.parser")
-
     # Find all links ending with .zip
     zip_links = [a['href'] for a in soup.find_all('a', href=True) if a['href'].endswith('.zip')]
-
     print(f"Found {len(zip_links)} ZIP files. Starting download...")
 
     # 1) Download each ZIP file
+    print("Download Census Data to {}".format(download_folder))
     for i, zip_file in enumerate(zip_links):
-        file_url = base_url + zip_file
+        file_url = BASE_URL + zip_file
         local_path = os.path.join(download_folder, zip_file)
 
         print(f"Downloading {zip_file}...")
@@ -57,13 +51,10 @@ if __name__ == "__main__":
                     if chunk:
                         f.write(chunk)
         else:
-            print(f"Failed to download {zip_file}")
+            print("Failed to download: {}, code {}".format(file_url, file_response.status_code))
+            raise ValueError
 
-        # this limit the number of files downloaded for testing
-        # remove this line to download all files
-        # if i > 3:  # Limit for testing
-        #    break
-    print("All downloads completed successfully!")
+        break
 
     # 2) Extract all zip files
     print("Extracting ZIP files...")
@@ -92,7 +83,11 @@ if __name__ == "__main__":
     # Merge all GeoDataFrames
     merged_gdf = gpd.GeoDataFrame(pd.concat(gdf_list, ignore_index=True), crs=gdf_list[0].crs)
 
+    # save as set of CSV's
+
     # Save to GeoPackage (overwrite if it exists)
     merged_gdf.to_file(output_gpkg, layer="tracts", driver="GPKG")
 
     print(f"Nationwide Census Tracts saved to: {output_gpkg}")
+
+    return None

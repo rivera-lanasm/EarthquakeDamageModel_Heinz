@@ -1,6 +1,4 @@
 """
-
-
 Census Tract Shapefile (tl_2019_us_tracts.shp)
 - Represents small geographic areas within counties.
 - Typically contains 2,500 to 8,000 people per tract.
@@ -193,12 +191,12 @@ def calculate_shakemap_statistics(shakemap_gdf, tracts_gdf, output_layer, GPKG_P
     aggregated_gdf.to_file(GPKG_PATH, layer=output_layer, driver="GPKG", mode="w")
 
     print(f"Saved {output_layer} (tract-level ShakeMap statistics) to {GPKG_PATH}")
-    return aggregated_gdf
+    return None
 
 
 def shakemap_into_census_geo(eventdir):
     # ShakeMap GIS File Folder
-    ShakeMapDir = get_shakemap_dir()
+    # ShakeMapDir = get_shakemap_dir()
 
     mi, pgv, pga = get_shakemap_files(eventdir)
     print("mi: {}".format(mi))
@@ -213,10 +211,10 @@ def shakemap_into_census_geo(eventdir):
 
     # Set data directory
     parent_dir = os.path.dirname(os.getcwd())
-    data_dir = os.path.join(parent_dir, 'Data')
+    # data_dir = os.path.join(parent_dir, 'Data')
 
     # Get Census Tracts file (download if missing)
-    Tracts = download_census_tracts(data_dir)
+    # Tracts = download_census_tracts(data_dir)
     census_gpd = gpd.read_file(Tracts)
 
     # Define the path for the GeoPackage
@@ -251,22 +249,13 @@ if __name__ == "__main__":
     parent_dir = os.path.dirname(os.getcwd())
     event_dir = os.path.join(parent_dir, 'ShakeMaps', 'nc72282711')
     
-    #event_dir = r"C:\Users\river\CMU\rcross\EarthquakeDamageModel_Heinz\ShakeMaps\nc72282711"
     shakemap_into_census_geo(event_dir)
 
     # Update with the actual path
     GPKG_PATH = os.path.join(event_dir, "eqmodel_outputs.gpkg")
-    
-    # GPKG_PATH = r"C:\Users\river\CMU\rcross\EarthquakeDamageModel_Heinz\ShakeMaps\nc72282711\eqmodel_outputs.gpkg"
 
-    # Read the layer you want to inspect
-    # tract_shakemap_mmi, tract_shakemap_pga, tract_shakemap_pgv --> same idea
-    tract_shakemap_gdf = gpd.read_file(GPKG_PATH, layer="tract_shakemap_mmi")
+    # # Read the layer you want to inspect
+    # tract_shakemap_gdf = gpd.read_file(GPKG_PATH, layer="tract_shakemap_mmi")
 
-    # Print basic information
-    print(tract_shakemap_gdf.info())
-
-    # Show first few rows
-    print(tract_shakemap_gdf.head())
-    
-    print(tract_shakemap_gdf[~tract_shakemap_gdf["min_intensity"].isna()])
+    # # Print basic information
+    # print(tract_shakemap_gdf.info())
