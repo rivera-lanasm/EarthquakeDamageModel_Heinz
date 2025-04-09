@@ -123,7 +123,7 @@ def download_and_extract_shakemap(event):
 
 
 if __name__ == "__main__":
-
+    EVENTID = "nc72282711"  # Example event ID
     feed_url = FEEDURL.format(EVENTID)
     jdict = fetch_earthquake_data(feed_url=feed_url)
 

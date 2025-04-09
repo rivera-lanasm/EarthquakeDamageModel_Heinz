@@ -47,6 +47,7 @@ def read_event_data(eventid = 'nc72282711'):
 
 # # READ BUILDING DATA
 
+# In[86]:
 
 
 # Check if a csv file for a state is exists
@@ -167,7 +168,19 @@ def save_to_geopackage(gdf, layer_name="tract_shakemap_pga", eventid = 'nc722827
     print(f"Saved {layer_name} to {GPKG_PATH} (overwritten).")
 
 
-# In[154]:
+# In[ ]:
+
+
+def merge_final_df(eventdata, df_output):
+    """
+    Merge the final dataframe with the event data."""
+    final_output = pd.merge(eventdata, df_output, left_on='GEOID', right_on='CENSUSCODE', how='left')
+    final_output.ffill(inplace=True)
+    final_output.drop(columns=['CENSUSCODE'], axis=1, inplace=True)
+    return final_output
+
+
+# In[ ]:
 
 
 def building_clip_analysis(eventid):
@@ -186,15 +199,18 @@ def building_clip_analysis(eventid):
     df_output = count_building_proportion(building_count, building_stock)
     # 5. Merge the event data and the merged building count and building stock data
     print("5. Merging event data with building data...")
-    final_output = pd.merge(eventdata, df_output, left_on='GEOID', right_on='CENSUSCODE', how='left')
-    final_output.ffill(inplace=True)
-    final_output.drop(columns=['CENSUSCODE'], axis=1, inplace=True)
-    final_output.head()
+    final_output = merge_final_df(eventdata, df_output)
     # 6. Save the final output to the GeoPackage
     print("6. Saving final output to GeoPackage...")
     layer_name = "tract_shakemap_pga"
     save_to_geopackage(final_output, layer_name, eventid)
     print(f"Building clip analysis completed for event ID: {eventid}")
+    # 7. Save the final output to a CSV file
+    print("Saving final output to CSV...")
+    parent_dir = os.path.dirname(os.getcwd())
+    event_dir = os.path.join(parent_dir, 'ShakeMaps', eventid)
+    final_output_csv_path = os.path.join(event_dir, "o3_building_clip_analysis.csv")
+    final_output.to_csv(final_output_csv_path, index=False)
 
 
 # In[155]:
