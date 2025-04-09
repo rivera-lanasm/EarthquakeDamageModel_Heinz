@@ -3,26 +3,18 @@
 
 # # LIBARY
 
-# In[84]:
+# In[182]:
 
 
 import geopandas as gpd
 import pandas as pd
 import numpy as np
-import fiona
-import pyogrio
 import os
-
-import requests
-import zipfile
-import os
-from io import BytesIO
-from bs4 import BeautifulSoup
 
 
 # # READ EVENT DATA
 
-# In[85]:
+# In[193]:
 
 
 def read_event_data(eventid = 'nc72282711'):
@@ -42,12 +34,14 @@ def read_event_data(eventid = 'nc72282711'):
     columns = gdf.columns
     gdf = gdf[[columns[0], columns[1], columns[2], columns[3], columns[-1]]]
     
-    return gdf.loc[gdf[columns[1]].notna()]
+    # change to panda dataframe
+    pd_gdf = pd.DataFrame(gdf)
+    return pd_gdf.loc[pd_gdf[columns[1]].notna()]
 
 
 # # READ BUILDING DATA
 
-# In[86]:
+# In[184]:
 
 
 # Check if a csv file for a state is exists
@@ -73,7 +67,7 @@ def read_building_count_by_tract():
 
 # # INTERSECT WITH BUILDING STOCKS
 
-# In[115]:
+# In[185]:
 
 
 def get_building_stock_data():
@@ -115,7 +109,7 @@ def get_building_stock_data():
 
 # # JOIN COUNT BUILDING DATA AND BUILDING STOCK DATA
 
-# In[150]:
+# In[194]:
 
 
 # take df_pivot and building_stock and merge them
@@ -145,7 +139,7 @@ def count_building_proportion(building_count, building_stock):
 # # SAVE OUTPUT TO EVENT DIR
 # 
 
-# In[153]:
+# In[206]:
 
 
 # Function to save GeoDataFrame to GeoPackage (Overwriting mode)
@@ -163,19 +157,21 @@ def save_to_geopackage(gdf, layer_name="tract_shakemap_pga", eventid = 'nc722827
     # Update with the actual path
     GPKG_PATH = os.path.join(event_dir, "eqmodel_outputs.gpkg")
 
+    # change gdf to geodataframe
+    gdf = gpd.GeoDataFrame(gdf, geometry=gdf['geometry'])
 
     gdf.to_file(GPKG_PATH, layer=layer_name, driver="GPKG", mode="w")
     print(f"Saved {layer_name} to {GPKG_PATH} (overwritten).")
 
 
-# In[ ]:
+# In[188]:
 
 
 def merge_final_df(eventdata, df_output):
     """
     Merge the final dataframe with the event data."""
     final_output = pd.merge(eventdata, df_output, left_on='GEOID', right_on='CENSUSCODE', how='left')
-    final_output.ffill(inplace=True)
+    final_output = final_output.ffill(axis=0)
     final_output.drop(columns=['CENSUSCODE'], axis=1, inplace=True)
     return final_output
 
@@ -188,6 +184,7 @@ def building_clip_analysis(eventid):
     # 1. Read the event data
     print(f"1. Reading event data for event ID: {eventid}")
     eventdata = read_event_data(eventid)
+
     # 2. Read the building count data
     print("2. Reading building count data...")
     building_count = read_building_count_by_tract()
@@ -197,9 +194,11 @@ def building_clip_analysis(eventid):
     # 4. Merge the building count and building stock data
     print("4. Merging building count and building stock data...")
     df_output = count_building_proportion(building_count, building_stock)
+
     # 5. Merge the event data and the merged building count and building stock data
     print("5. Merging event data with building data...")
     final_output = merge_final_df(eventdata, df_output)
+  
     # 6. Save the final output to the GeoPackage
     print("6. Saving final output to GeoPackage...")
     layer_name = "tract_shakemap_pga"
@@ -213,7 +212,7 @@ def building_clip_analysis(eventid):
     final_output.to_csv(final_output_csv_path, index=False)
 
 
-# In[155]:
+# In[210]:
 
 
 if __name__ == "__main__":
@@ -223,7 +222,9 @@ if __name__ == "__main__":
     # building_stock = get_building_stock_data()
     # df_output = count_building_proportion(building_count, building_stock)
     # save_to_geopackage(df_output, layer_name="building_data")
-    
+    print("GeoPandas version:", gpd.__version__)
+    print("Pandas version:", pd.__version__)
+
     # Perform building clip analysis for a specific event ID
     eventid = 'nc72282711'
     building_clip_analysis(eventid)
