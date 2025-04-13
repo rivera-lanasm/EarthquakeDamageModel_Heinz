@@ -3,7 +3,7 @@
 
 # # LIBARY
 
-# In[53]:
+# In[84]:
 
 
 import geopandas as gpd
@@ -22,7 +22,7 @@ from bs4 import BeautifulSoup
 
 # # READ EVENT DATA
 
-# In[54]:
+# In[85]:
 
 
 def read_event_data(eventid = 'nc72282711'):
@@ -72,7 +72,7 @@ def read_building_count_by_tract():
 
 # # INTERSECT WITH BUILDING STOCKS
 
-# In[60]:
+# In[115]:
 
 
 def get_building_stock_data():
@@ -86,10 +86,22 @@ def get_building_stock_data():
     # check if the folder exists
     CSV_PATH = os.path.join(parent_dir, 'Data', 'building_stock_data', 'Building_Percentages_Per_Tract_ALLSTATES.csv')
     
-
+    # Change data types
+    cols = ['W1', 'W2', 'S1L', 'S1M', 'S1H', 'S2L', 'S2M',
+       'S2H', 'S3', 'S4L', 'S4M', 'S4H', 'S5L', 'S5M', 'S5H', 'C1L', 'C1M',
+       'C1H', 'C2L', 'C2M', 'C2H', 'C3L', 'C3M', 'C3H', 'PC1', 'PC2L', 'PC2M',
+       'PC2H', 'RM1L', 'RM1M', 'RM2L', 'RM2M', 'RM2H', 'URML', 'URMM', 'MH',
+       'Total']
+    # create a library for data type change
+    dtypes = {}
+    for col in cols:
+        dtypes[col] = 'float64'
+    dtypes['Tract'] = 'str'
+    
     if os.path.exists(CSV_PATH):
         print(f"Building stock data exists at {CSV_PATH}")
-        gdf = gpd.read_file(CSV_PATH)
+        gdf = pd.read_csv(CSV_PATH, dtype=dtypes)
+        gdf = gdf.drop(columns=['Unnamed: 0'])
         gdf['CENSUSCODE'] = np.where(gdf['Tract'].str.len() == 11, gdf['Tract'], "0"+gdf['Tract'])
 
     else:
@@ -102,7 +114,7 @@ def get_building_stock_data():
 
 # # JOIN COUNT BUILDING DATA AND BUILDING STOCK DATA
 
-# In[62]:
+# In[150]:
 
 
 # take df_pivot and building_stock and merge them
@@ -110,15 +122,29 @@ def count_building_proportion(building_count, building_stock):
     # merge the dataframes
     merged_df = pd.merge(building_count, building_stock, on='CENSUSCODE', how='left')
     merged_df.drop(columns=['Tract'], axis=1, inplace=True)
-    merged_df.drop(columns=['field_1'], axis=1, inplace=True)
+    merged_df.drop(columns=['STATE_ID'], axis=1, inplace=True)
+    #merged_df.drop(columns=['field_1'], axis=1, inplace=True)
     merged_df.bfill(inplace=True)
+
+    # calculate the number of each building type
+    cols = ['W1', 'W2', 'S1L', 'S1M', 'S1H', 'S2L', 'S2M',
+       'S2H', 'S3', 'S4L', 'S4M', 'S4H', 'S5L', 'S5M', 'S5H', 'C1L', 'C1M',
+       'C1H', 'C2L', 'C2M', 'C2H', 'C3L', 'C3M', 'C3H', 'PC1', 'PC2L', 'PC2M',
+       'PC2H', 'RM1L', 'RM1M', 'RM2L', 'RM2M', 'RM2H', 'URML', 'URMM', 'MH']
+    for col in cols:
+        merged_df[f"{col}_COUNT"] = round(merged_df[col]/merged_df['Total'] * merged_df['TOTAL_BUILDING_COUNT'])
+    
+    # drop the proportion columns
+    merged_df.drop(columns=cols, axis=1, inplace=True)
+    merged_df.drop(columns=['Total'], axis=1, inplace=True)
+    
     return merged_df
 
 
 # # SAVE OUTPUT TO EVENT DIR
 # 
 
-# In[77]:
+# In[153]:
 
 
 # Function to save GeoDataFrame to GeoPackage (Overwriting mode)
@@ -141,7 +167,7 @@ def save_to_geopackage(gdf, layer_name="tract_shakemap_pga", eventid = 'nc722827
     print(f"Saved {layer_name} to {GPKG_PATH} (overwritten).")
 
 
-# In[78]:
+# In[154]:
 
 
 def building_clip_analysis(eventid):
@@ -171,7 +197,7 @@ def building_clip_analysis(eventid):
     print(f"Building clip analysis completed for event ID: {eventid}")
 
 
-# In[79]:
+# In[155]:
 
 
 if __name__ == "__main__":

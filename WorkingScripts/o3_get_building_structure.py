@@ -251,6 +251,9 @@ def aggregate_building_data():
 
     # drop OTHER_SINGLE FAMILY
     building_data = building_data.drop(columns=['OTHER_SINGLE FAMILY'], errors='ignore')
+
+    # sum all building
+    building_data['TOTAL_BUILDING_COUNT'] = building_data['OTHER_OTHER']+building_data['RESIDENTIAL_MULTI FAMILY']+building_data['RESIDENTIAL_OTHER']+building_data['RESIDENTIAL_SINGLE FAMILY']
     
     # save the building data to a csv file
     building_data.to_csv(os.path.join(path, 'aggregated_building_data.csv'), index=False)
@@ -266,9 +269,9 @@ def o3_get_building_structures():
     state_links = fetch_state_links()
 
     # Iterate through the state names and download the corresponding ZIP files
-    i = 0
+    i = 1
     for state in state_links:
-        if i < 2:
+        if i <= 50:
             download_and_extract_zip(state, state_links)
             i += 1
         else:
