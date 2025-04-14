@@ -110,4 +110,5 @@ if __name__ == "__main__":
     # num_NU
 
     # BHI_factor = (num_FU*perc_FU_NH + num_PU*perc_PU_NH + num_NU) / N
-    # BHI = BHI_factor * census population 
+    
+    # BHI (census) = BHI_factor * census population 
