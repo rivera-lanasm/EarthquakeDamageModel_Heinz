@@ -1,7 +1,10 @@
 
+# ========== O1 ====================================
 from working_scripts.o1_getshakemap import FEEDURL
 from working_scripts.o1_getshakemap import fetch_earthquake_data, retrieve_event_data, download_and_extract_shakemap
+# ========== O2 ====================================
 from working_scripts.o2_download_census import download_census
+# ========== O3 ====================================
 
 def main(**config):
     """
