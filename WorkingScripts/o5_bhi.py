@@ -77,6 +77,7 @@ if __name__ == "__main__":
 
     # ==================================
     # step 0 - import population from census, join
+        # source: https://data.census.gov/table/DECENNIALPL2020.P1?t=Populations+and+People&g=040XX00US06$1400000
     pop_data = pd.read_csv("Data/CA_DECENNIALPL2020.csv")
     print(pop_data.head())
 
