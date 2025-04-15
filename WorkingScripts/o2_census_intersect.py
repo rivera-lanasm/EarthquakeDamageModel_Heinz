@@ -211,10 +211,10 @@ def shakemap_into_census_geo(eventdir):
 
     # Set data directory
     parent_dir = os.path.dirname(os.getcwd())
-    # data_dir = os.path.join(parent_dir, 'Data')
+    data_dir = os.path.join(parent_dir, 'Data')
 
     # Get Census Tracts file (download if missing)
-    # Tracts = download_census_tracts(data_dir)
+    Tracts = download_census_tracts(data_dir)
     census_gpd = gpd.read_file(Tracts)
 
     # Define the path for the GeoPackage

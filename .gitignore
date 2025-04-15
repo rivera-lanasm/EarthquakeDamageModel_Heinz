@@ -5,6 +5,9 @@ Data/census_shp
 Data/extracted_census_shp
 Data/merged_shapefile
 
+#Working Scripts
+WorkingScripts/__pycache__/*
+
 # Shakemaps
 ShakeMaps/*
 tables/lightbox*

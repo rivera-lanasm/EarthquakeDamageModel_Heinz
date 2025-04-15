@@ -1,1 +1,9 @@
-geopandas
+geopandas==1.0.1
+pandas==2.2.2
+requests
+zipfile36
+Python-IO
+datetime
+glob2
+bs4
+numpy

@@ -3,7 +3,7 @@
 
 # # LIBARY
 
-# In[2]:
+# In[3]:
 
 
 import geopandas as gpd
@@ -227,7 +227,7 @@ def pivot_building_data(count_building_data):
     return df_pivot
 
 
-# In[3]:
+# In[7]:
 
 
 def aggregate_building_data():
@@ -259,7 +259,7 @@ def aggregate_building_data():
     building_data.to_csv(os.path.join(path, 'aggregated_building_data.csv'), index=False)
 
 
-# In[43]:
+# In[ ]:
 
 
 def o3_get_building_structures():
@@ -269,9 +269,9 @@ def o3_get_building_structures():
     state_links = fetch_state_links()
 
     # Iterate through the state names and download the corresponding ZIP files
-    i = 1
+    i = 0
     for state in state_links:
-        if i <= 50:
+        if i < len(state_links):
             download_and_extract_zip(state, state_links)
             i += 1
         else:
@@ -280,8 +280,8 @@ def o3_get_building_structures():
 
     # states data
     states_data = [
-        ("Alabama", "AL"), ("Alaska", "AK")]
-    """("Arizona", "AZ"), ("Arkansas", "AR"), ("California", "CA"), ("Colorado", "CO"), ("Connecticut", "CT"), ("Delaware", "DE"),
+        ("Alabama", "AL"), ("Alaska", "AK")
+        ("Arizona", "AZ"), ("Arkansas", "AR"), ("California", "CA"), ("Colorado", "CO"), ("Connecticut", "CT"), ("Delaware", "DE"),
         ("Florida", "FL"), ("Georgia", "GA"), ("Hawaii", "HI"), ("Idaho", "ID"),
         ("Illinois", "IL"), ("Indiana", "IN"), ("Iowa", "IA"), ("Kansas", "KS"),
         ("Kentucky", "KY"), ("Louisiana", "LA"), ("Maine", "ME"), ("Maryland", "MD"),
@@ -292,7 +292,7 @@ def o3_get_building_structures():
         ("Oregon", "OR"), ("Pennsylvania", "PA"), ("Rhode Island", "RI"), ("South Carolina", "SC"),
         ("South Dakota", "SD"), ("Tennessee", "TN"), ("Texas", "TX"), ("Utah", "UT"),
         ("Vermont", "VT"), ("Virginia", "VA"), ("Washington", "WA"), ("West Virginia", "WV"),
-        ("Wisconsin", "WI"), ("Wyoming", "WY")]"""
+        ("Wisconsin", "WI"), ("Wyoming", "WY")]
 
     # read the shapefiles for all states
     for state_name, stateid in states_data:
