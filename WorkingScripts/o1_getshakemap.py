@@ -17,9 +17,10 @@ import io
 import datetime
 import geopandas as gpd 
 
-SHAKEMAP_DIR = "{}/Data".format(os.getcwd())
+# SHAKEMAP_DIR = "{}/Data".format(os.getcwd())
+SHAKEMAP_DIR = os.path.join(os.path.dirname(os.getcwd()), 'ShakeMaps')
 FEEDURL = "https://earthquake.usgs.gov/fdsnws/event/1/query.geojson?eventid={}"
-
+EVENTID = "nc72282711"
 
 def fetch_earthquake_data(feed_url):
     """
