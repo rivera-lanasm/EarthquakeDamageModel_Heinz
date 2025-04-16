@@ -1,7 +1,10 @@
 
+# ========== O1 ====================================
 from working_scripts.o1_getshakemap import FEEDURL
 from working_scripts.o1_getshakemap import fetch_earthquake_data, retrieve_event_data, download_and_extract_shakemap
+# ========== O2 ====================================
 from working_scripts.o2_download_census import download_census
+# ========== O3 ====================================
 
 def main(**config):
     """
@@ -27,25 +30,57 @@ def main(**config):
     print(mmi)
 
     # ================================================
-    # o2 - Overlay US Census Tract Data onto ShakeMap
+    # o2 - Download US Census Tract Data (Optional)
     # ================================================
     # download national census data if missing
     download_census()
+
+    # ================================================
+    # o2 - Overlay US Census Tract Data onto ShakeMap
+    # ================================================
     # clip census and shakemaps, min pga per census tract
 
     # return relevant states 
 
     # ================================================
+    # o3 - Download Building Centroid Data (Optional)
+    # ================================================
+
+
+    # ================================================
     # o3 - Building Centroids
+    #     Perform building clip analysis for a specific event ID
     # ================================================
 
-    # Perform building clip analysis for a specific event ID
-
     # ================================================
-    # o4 - Apply Damage Functions
+    # o4 - Downlaod Damage Functions (Optional) 
     # ================================================
 
-    # o4 main
+    # ================================================
+    # o4 - Downlaod Building Code Data (Optional) 
+    # ================================================
+
+    # ========================================================
+    # o4 - Apply Damage Functions using Building Code Data
+    # ========================================================
+
+    # ================================================
+    # o5 - Implement BHI
+    # ================================================
+
+
+    # ================================================
+    # o6 - Download SVI data (Optional)
+    # ================================================
+
+    # ================================================
+    # o6 - Implement SVI
+    # ================================================
+
+
+    # ================================================
+    # o7 - Combine SVI and BHI, Format Output Data
+    # ================================================
 
 
 if __name__ == "__main__":
