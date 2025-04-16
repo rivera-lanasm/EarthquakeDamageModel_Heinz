@@ -22,35 +22,50 @@ def read_event_data(eventid):
 
 
 def read_svi_data():
-    parent_dir = os.path.dirname(os.getcwd())
-    svi_dir = os.path.join(parent_dir, "Data", "SVI", "SVI_2022_US.csv")
+    # parent_dir = os.path.dirname(os.getcwd())
+    svi_dir = "Data/SVI/SVI_2022_US.csv"# os.path.join(parent_dir, "Data", "SVI", "SVI_2022_US.csv")
+    print(svi_dir)
     svi = pd.read_csv(svi_dir)
 
     return svi
 
-def process_svi(event_data, svi_data):
+# def process_svi(event_data, svi_data):
 
-    #extract only the data we need from svi
+#     #extract only the data we need from svi
+#     svi_data = svi_data[['FIPS', 'RPL_THEMES']].rename(columns={'RPL_THEMES': "SVI_Value"})
+
+#     # Left merge event event_data and svi_data
+#     # only keep tracts that are in event data
+    
+#     # NOTE / TODO: this might not currently work because of differences in column types.
+#     # I'm waiting for us to finalize how event_data is stored before fixing this
+#     #event_data_w_svi = pd.merge(event_data, svi_data, how = 'left', left_on='GEOID', right_on='FIPS')
+
+#     return svi_data
+
+def map_range(val):
+    if 0 <= val < 0.2:
+        return 0.8
+    elif 0.2 <= val < 0.4:
+        return 1.0
+    elif 0.4 <= val < 0.6:
+        return 1.2
+    elif 0.8 <= val <= 1.0:
+        return 1.4
+    else:
+        return None  # or np.nan if you're using NumPy
+
+def process_svi():
+    
+    #event_data = read_event_data(eventid)
+    svi_data = read_svi_data()
     svi_data = svi_data[['FIPS', 'RPL_THEMES']].rename(columns={'RPL_THEMES': "SVI_Value"})
-
-    # Left merge event event_data and svi_data
-    # only keep tracts that are in event data
-    
-    # NOTE / TODO: this might not currently work because of differences in column types.
-    # I'm waiting for us to finalize how event_data is stored before fixing this
-    event_data_w_svi = pd.merge(event_data, svi_data, how = 'left', left_on='GEOID', right_on='FIPS')
-
-    return event_data_w_svi
-
-
-def main(eventid):
-    
-    event_data = read_event_data(eventid)
-    svi = read_svi_data()
-    final = process_svi(event_data, svi_data = svi)
+    #final = process_svi(event_data, svi_data = svi)
+    svi_data["SVI_Value_Mapped"] = svi_data["SVI_Value"].apply(map_range)
 
     #TODO: potentially save this in folder directly - wait to hear back from team on desired final output
-    return final
+    return svi_data
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     df = main()
+#     print(df)

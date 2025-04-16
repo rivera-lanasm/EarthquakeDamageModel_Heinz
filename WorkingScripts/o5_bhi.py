@@ -55,7 +55,7 @@ def tract_damage_lvl(damage_dist):
         return "low"
 
 
-if __name__ == "__main__":
+def process_bhi():
 
     # ==================================
     # step 0 - import population from census, join
@@ -121,17 +121,17 @@ if __name__ == "__main__":
                      "BHI_factor_low", "BHI_factor_high"]
 
     df = df[final_col_set].sort_values(by=["max_intensity"], ascending=False).reset_index(drop=True)
-    print(df)
-    print("\n")
-    print(pop_data)
 
     # merge pop data
     df = df.merge(pop_data[["GEO_ID", "P1_001N"]], how="inner", left_on="GEOID", right_on="GEO_ID")
     df = df.drop(columns=["GEO_ID"])
     df = df.rename(columns={"P1_001N":"population"})
+    return df
 
-    print("\n")
-    print(df)
+# if __name__ == "__main__":
+
+
+
     # BHI (census) = BHI_factor * census tract population --> number of people in census tract with non-habitable housing
 
     # SVI --> [0,1] (higher is more vulnerable) 

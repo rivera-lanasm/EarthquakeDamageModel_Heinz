@@ -1,10 +1,17 @@
 
 # ========== O1 ====================================
-from working_scripts.o1_getshakemap import FEEDURL
-from working_scripts.o1_getshakemap import fetch_earthquake_data, retrieve_event_data, download_and_extract_shakemap
+from WorkingScripts.o1_getshakemap import FEEDURL
+from WorkingScripts.o1_getshakemap import fetch_earthquake_data, retrieve_event_data, download_and_extract_shakemap
 # ========== O2 ====================================
-from working_scripts.o2_download_census import download_census
+from WorkingScripts.o2_download_census import download_census
 # ========== O3 ====================================
+
+# ========== O4 ====================================
+
+# ========== O5 ====================================
+from WorkingScripts.o5_bhi import process_bhi
+from WorkingScripts.o5_svi_module import process_svi
+
 
 def main(**config):
     """
@@ -14,26 +21,26 @@ def main(**config):
     # ==============================================
     # o1 - retrieve shakemap for specified event ID
     # ==============================================
-    # o1 parameters
-    EVENT_ID = config["event_id"]
-    feed_url = FEEDURL.format(EVENT_ID)
-    # o1 process
-    jdict = fetch_earthquake_data(feed_url=feed_url)
-    event = retrieve_event_data(jdict)
-    download_and_extract_shakemap(event)
-    # extract earthquake information
-    place = jdict["properties"]["place"]
-    time = jdict["properties"]["time"]
-    mmi = jdict["properties"]["mmi"]
-    print(place)
-    print(time)
-    print(mmi)
+    # # o1 parameters
+    # EVENT_ID = config["event_id"]
+    # feed_url = FEEDURL.format(EVENT_ID)
+    # # o1 process
+    # jdict = fetch_earthquake_data(feed_url=feed_url)
+    # event = retrieve_event_data(jdict)
+    # download_and_extract_shakemap(event)
+    # # extract earthquake information
+    # place = jdict["properties"]["place"]
+    # time = jdict["properties"]["time"]
+    # mmi = jdict["properties"]["mmi"]
+    # print(place)
+    # print(time)
+    # print(mmi)
 
     # ================================================
     # o2 - Download US Census Tract Data (Optional)
     # ================================================
     # download national census data if missing
-    download_census()
+    # download_census()
 
     # ================================================
     # o2 - Overlay US Census Tract Data onto ShakeMap
@@ -70,12 +77,10 @@ def main(**config):
 
 
     # ================================================
-    # o6 - Download SVI data (Optional)
+    # o6 - Download SVI data 
     # ================================================
-
-    # ================================================
-    # o6 - Implement SVI
-    # ================================================
+    # download SVI (optional)
+    # process SVI
 
 
     # ================================================
@@ -85,7 +90,9 @@ def main(**config):
 
 if __name__ == "__main__":
 
+    # USER INPUT
     config = {"event_id": "nc72282711"}
+    
     main(**config)
 
 
