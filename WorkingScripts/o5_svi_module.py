@@ -45,13 +45,13 @@ def read_svi_data():
 
 def map_range(val):
     if 0 <= val < 0.2:
-        return 0.8
+        return 0.1
     elif 0.2 <= val < 0.4:
-        return 1.0
-    elif 0.4 <= val < 0.6:
-        return 1.2
+        return .3
+    elif 0.4 <= val < 0.8:
+        return .3
     elif 0.8 <= val <= 1.0:
-        return 1.4
+        return .5
     else:
         return None  # or np.nan if you're using NumPy
 

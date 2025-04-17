@@ -4,7 +4,7 @@ from WorkingScripts.o1_getshakemap import FEEDURL
 from WorkingScripts.o1_getshakemap import fetch_earthquake_data, retrieve_event_data, download_and_extract_shakemap
 # ========== O2 ====================================
 from WorkingScripts.o2_download_census import download_census
-from WorkingScripts.o2_census_intersect import download_census
+# from WorkingScripts.o2_census_intersect import download_census
 # ========== O3 ====================================
 from WorkingScripts.o3_clip_eventdata_buildingstocks import building_clip_analysis
 from WorkingScripts.o3_get_building_structure import o3_get_building_structures
@@ -14,6 +14,7 @@ from WorkingScripts.o3_get_building_structure import o3_get_building_structures
 from WorkingScripts.o5_bhi import process_bhi
 from WorkingScripts.o5_svi_module import process_svi
 
+import pandas as pd
 
 def main(**config):
     """
@@ -93,8 +94,33 @@ def main(**config):
 if __name__ == "__main__":
 
     # USER INPUT
-    config = {"event_id": "nc72282711"}
+    # config = {"event_id": "nc72282711"}
     
-    main(**config)
+    # main(**config)
+
+
+    # read BHI output
+    df = pd.read_csv("Data/bhi_output.csv")
+    # print(df)
+
+    # apply SVI 
+    svi = process_svi()
+    # print(svi)
+
+    df = df.merge(svi, left_on = "GEOID", right_on="FIPS")
+    
+    df["shelter_seeking_low"] = df["shelter_seeking_low"]*df["SVI_Value_Mapped"] 
+
+    df = df.drop(columns=["FIPS"])
+
+    print(df["shelter_seeking_low"].sum())
+    print(df["shelter_seeking_low"].sum()/df["population"].sum())
+
+    df = df.sort_values(by=["shelter_seeking_low"], ascending=False)
+
+    print(df.head(50))
+
+    df.to_csv("Data/final_output.csv", index=False)
+
 
 

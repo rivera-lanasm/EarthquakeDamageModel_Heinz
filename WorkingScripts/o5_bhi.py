@@ -162,9 +162,14 @@ if __name__ == "__main__":
     df["shelter_seeking_low"] = df["shelter_seeking_low"].apply(lambda x: round(x,4))
     # df["shelter_seeking_high"] = df["shelter_seeking_high"].apply(lambda x: round(x,4))
     print(df.sort_values(by=["shelter_seeking_low"], ascending=False).head(50))
+    
     # BHI (census) = BHI_factor * census tract population --> number of people in census tract with non-habitable housing
+    df.to_csv("Data/bhi_output.csv", index=False)
+    
+    #pop_data = pd.read_csv("Data/CA_DECENNIALPL2020.csv")
 
-    # SVI --> [0,1] (higher is more vulnerable) 
+    # SVI --> [0,1] (higher is more vulnerable)
+
 
     # 100, SVI = .5 --> 50 
 
