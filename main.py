@@ -4,6 +4,7 @@ from WorkingScripts.o1_getshakemap import FEEDURL
 from WorkingScripts.o1_getshakemap import fetch_earthquake_data, retrieve_event_data, download_and_extract_shakemap
 # ========== O2 ====================================
 from WorkingScripts.o2_download_census import download_census
+from WorkingScripts.o2_census_intersect import download_census
 # ========== O3 ====================================
 
 # ========== O4 ====================================

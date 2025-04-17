@@ -14,8 +14,8 @@ Estimating Building Habitability
 # these can be user parameters
 BLDNG_USABILITY = {
 "Slight":{"FU": 0.87, "PU": 0.13, "NU": 0},
-"Moderate":{"FU": 0.22, "PU": 0.13, "NU": 0},
-"Extensive":{"FU": 0.1, "PU": 0.25 , "NU": 0.53},
+"Moderate":{"FU": 0.87, "PU": 0.13, "NU": 0},
+"Extensive":{"FU": 0.22, "PU": 0.25 , "NU": 0.53},
 "Complete":{"FU": 0, "PU": 0.02, "NU": 0.98}
     }
 
@@ -26,7 +26,7 @@ BLDNG_USABILITY = {
 #     }
     # FU_NH --> 50 --> (10%, 10%, 5%) --> 10%
 UL_SEVERITY = {
-    "low":[0,.2], 
+    "low":[.05,.2], 
     "medium":[.3,.5],
     "high":[.6, .8]
     }
@@ -85,8 +85,8 @@ def process_bhi():
                    df["Total_Num_Building_Extensive"].apply(lambda x: BLDNG_USABILITY["Extensive"]["FU"]*x) +\
                    df["Total_Num_Building_Complete"].apply(lambda x: BLDNG_USABILITY["Complete"]["FU"]*x)
     # perc_FU_NH_low
-    df["perc_FU_NH_low"] = df.apply(lambda row: row['num_FU'] * UL_SEVERITY[row['risk_level']][0], axis=1)
-    df["perc_FU_NH_high"] = df.apply(lambda row: row['num_FU'] * UL_SEVERITY[row['risk_level']][1], axis=1)
+    df["perc_FU_NH_low"] = df.apply(lambda row: UL_SEVERITY[row['risk_level']][0], axis=1)
+    df["perc_FU_NH_high"] = df.apply(lambda row: UL_SEVERITY[row['risk_level']][1], axis=1)
 
     # num_PU
     df["num_PU"] = df["Total_Num_Building_Slight"].apply(lambda x: BLDNG_USABILITY["Slight"]["PU"]*x) +\
@@ -95,8 +95,8 @@ def process_bhi():
                    df["Total_Num_Building_Complete"].apply(lambda x: BLDNG_USABILITY["Complete"]["PU"]*x)
 
     # perc_PU_NH
-    df["perc_PU_NH_low"] = df.apply(lambda row: row['num_PU'] * UL_SEVERITY[row['risk_level']][0], axis=1)
-    df["perc_PU_NH_high"] = df.apply(lambda row: row['num_PU'] * UL_SEVERITY[row['risk_level']][1], axis=1)
+    df["perc_PU_NH_low"] = df.apply(lambda row: UL_SEVERITY[row['risk_level']][0], axis=1)
+    df["perc_PU_NH_high"] = df.apply(lambda row: UL_SEVERITY[row['risk_level']][1], axis=1)
 
     # num_NU
     df["num_NU"] = df["Total_Num_Building_Slight"].apply(lambda x: BLDNG_USABILITY["Slight"]["NU"]*x) +\
@@ -105,11 +105,12 @@ def process_bhi():
                    df["Total_Num_Building_Complete"].apply(lambda x: BLDNG_USABILITY["Complete"]["NU"]*x)
 
     # BHI_factor = (num_FU*perc_FU_NH + num_PU*perc_PU_NH + num_NU) / N
-    df["BHI_factor_low"] = (df["num_FU"]*df["perc_FU_NH_low"] + df["num_PU"]*df["perc_PU_NH_low"] + df["num_NU"])/df["Total_Num_Building"]
-    df["BHI_factor_high"] = (df["num_FU"]*df["perc_FU_NH_high"] + df["num_PU"]*df["perc_PU_NH_high"] + df["num_NU"])/df["Total_Num_Building"]
+    df["BHI_factor_low"] = (df["num_FU"]*(1-df["perc_FU_NH_low"]) + df["num_PU"]*(1-df["perc_PU_NH_low"]) + df["num_NU"])/df["Total_Num_Building"]
+    df["BHI_factor_high"] = (df["num_FU"]*(1-df["perc_FU_NH_high"]) + df["num_PU"]*(1-df["perc_PU_NH_high"]) + df["num_NU"])/df["Total_Num_Building"]
 
 
     # join census population data
+    ["Total_Num_Building",]
     final_col_set = ["GEOID", "CENSUSCODE", "max_intensity",
                      "Total_Num_Building",
                      "Total_Num_Building_Slight", "Total_Num_Building_Moderate", 
@@ -126,16 +127,48 @@ def process_bhi():
     df = df.merge(pop_data[["GEO_ID", "P1_001N"]], how="inner", left_on="GEOID", right_on="GEO_ID")
     df = df.drop(columns=["GEO_ID"])
     df = df.rename(columns={"P1_001N":"population"})
+
+    df["denominator"] = df["Total_Num_Building"]
+
     return df
 
-# if __name__ == "__main__":
+if __name__ == "__main__":
 
+    df = process_bhi()
+    df["population"] = df["population"].astype(int)
+    df["shelter_seeking_low"] = df["BHI_factor_low"]*df["population"]
+    df["shelter_seeking_high"] = df["BHI_factor_high"]*df["population"]
+    print(df[["Total_Num_Building_Slight", "Total_Num_Building_Moderate", 
+              "Total_Num_Building_Extensive", "Total_Num_Building_Complete"]])
 
+    print(df["shelter_seeking_low"].sum())
+    print(df["shelter_seeking_high"].sum())
+    print(df["shelter_seeking_low"].sum()/df["population"].sum())
 
+    cols = ["GEOID", "max_intensity", "population", "Total_Num_Building", 
+            "BHI_factor_low", #"BHI_factor_high",
+            "shelter_seeking_low", #"shelter_seeking_high",
+            "numerator_low"]
+            # "Total_Num_Building_Slight", "Total_Num_Building_Moderate", 
+            # "Total_Num_Building_Extensive", "Total_Num_Building_Complete"]
+
+    df["numerator_low"] = round(df["num_FU"]*df["perc_FU_NH_low"] + df["num_PU"]*df["perc_PU_NH_low"] + df["num_NU"],2)
+    # df["numerator_high"] = round(df["num_FU"]*df["perc_FU_NH_high"] + df["num_PU"]*df["perc_PU_NH_high"] + df["num_NU"],2)
+
+    df = df[cols]
+
+    df["BHI_factor_low"] = df["BHI_factor_low"].apply(lambda x: round(x,4))
+    # df["BHI_factor_high"] = df["BHI_factor_high"].apply(lambda x: round(x,4))
+    df["shelter_seeking_low"] = df["shelter_seeking_low"].apply(lambda x: round(x,4))
+    # df["shelter_seeking_high"] = df["shelter_seeking_high"].apply(lambda x: round(x,4))
+    print(df.sort_values(by=["shelter_seeking_low"], ascending=False).head(50))
     # BHI (census) = BHI_factor * census tract population --> number of people in census tract with non-habitable housing
 
     # SVI --> [0,1] (higher is more vulnerable) 
 
     # 100, SVI = .5 --> 50 
 
-    # 0, 1, 2, 3, 4, 50%
+
+
+
+
