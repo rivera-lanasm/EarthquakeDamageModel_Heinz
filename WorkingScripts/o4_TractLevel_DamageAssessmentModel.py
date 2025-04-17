@@ -1,9 +1,16 @@
 import os
 import geopandas as gpd    #used for handling geospatial Census Tract data
+import geopandas as gpd    #used for handling geospatial Census Tract data
 import pandas as pd
 from scipy.stats import norm    #used to compute earthquake damage probability
 import numpy as np
 import time
+
+
+# Step 1: Read in Data
+
+## 1.a Read Damage functions Data
+'''
 
 
 # Step 1: Read in Data
@@ -16,7 +23,15 @@ Each row represents a combination of building type and building code
 building type refers to the (such as structure or materials of the building: frames, wall types)
 building codes are the classification of its seismic codes
 for example: HC (high code) is the most resistant. 
+Each row represents a combination of building type and building code
+building type refers to the (such as structure or materials of the building: frames, wall types)
+building codes are the classification of its seismic codes
+for example: HC (high code) is the most resistant. 
 
+Each column (median moderate, median extensive, median complete ...) refers to a damage state
+The values represents the PGA (Peak Ground Acceleration) value at which such damage state will occur.
+For example, if MedianModerate = 0.22, it means given the building type and building code,
+moderate damage can be expected at a PGA of 0.22.
 Each column (median moderate, median extensive, median complete ...) refers to a damage state
 The values represents the PGA (Peak Ground Acceleration) value at which such damage state will occur.
 For example, if MedianModerate = 0.22, it means given the building type and building code,
