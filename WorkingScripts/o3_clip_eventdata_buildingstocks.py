@@ -3,7 +3,7 @@
 
 # # LIBARY
 
-# In[182]:
+# In[57]:
 
 
 import geopandas as gpd
@@ -14,13 +14,14 @@ import os
 
 # # READ EVENT DATA
 
-# In[ ]:
+# In[58]:
 
 
-def read_event_data(parent_dir = os.path.dirname(os.getcwd()), eventid = 'nc72282711'):
+def read_event_data(parent_dir, eventid = 'nc72282711'):
     """
     Read event data from a GPKG file.
     """
+    # parent_dir = os.path.dirname(os.getcwd())
     event_dir = os.path.join(parent_dir, 'ShakeMaps', eventid)
 
     # Update with the actual path
@@ -40,18 +41,18 @@ def read_event_data(parent_dir = os.path.dirname(os.getcwd()), eventid = 'nc7228
 
 # # READ BUILDING DATA
 
-# In[184]:
+# In[59]:
 
 
 # Check if a csv file for a state is exists
     # if exists, read it
     # if not, check if the gdb file exists
     # if exists, read it
-def read_building_count_by_tract():
+def read_building_count_by_tract(parent_dir):
     """
     Read building count data from a CSV file.
     """
-    parent_dir = os.path.dirname(os.getcwd())
+    # parent_dir = os.path.dirname(os.getcwd())
     # Update with the actual path
     CSV_PATH = os.path.join(parent_dir, 'Data', 'building_data_csv', "aggregated_building_data.csv")
     # check if the file exists
@@ -66,17 +67,17 @@ def read_building_count_by_tract():
 
 # # INTERSECT WITH BUILDING STOCKS
 
-# In[185]:
+# In[60]:
 
 
-def get_building_stock_data():
+def get_building_stock_data(parent_dir):
     """
     2. Check if the csv file exists
     3. If not, create the folder aand copy the csv file
     4. If exists, read the csv file
     """
 
-    parent_dir = os.path.dirname(os.getcwd())
+    
     # check if the folder exists
     CSV_PATH = os.path.join(parent_dir, 'Data', 'building_stock_data', 'Building_Percentages_Per_Tract_ALLSTATES.csv')
     
@@ -108,7 +109,7 @@ def get_building_stock_data():
 
 # # JOIN COUNT BUILDING DATA AND BUILDING STOCK DATA
 
-# In[194]:
+# In[61]:
 
 
 # take df_pivot and building_stock and merge them
@@ -126,10 +127,10 @@ def count_building_proportion(building_count, building_stock):
        'C1H', 'C2L', 'C2M', 'C2H', 'C3L', 'C3M', 'C3H', 'PC1', 'PC2L', 'PC2M',
        'PC2H', 'RM1L', 'RM1M', 'RM2L', 'RM2M', 'RM2H', 'URML', 'URMM', 'MH']
     for col in cols:
-        merged_df[f"{col}_COUNT"] = round(merged_df[col]/merged_df['Total'] * merged_df['TOTAL_BUILDING_COUNT'])
+        merged_df[f"{col}"] = round(merged_df[col]/merged_df['Total'] * merged_df['TOTAL_BUILDING_COUNT'])
     
     # drop the proportion columns
-    merged_df.drop(columns=cols, axis=1, inplace=True)
+    #merged_df.drop(columns=cols, axis=1, inplace=True)
     merged_df.drop(columns=['Total'], axis=1, inplace=True)
     
     return merged_df
@@ -138,7 +139,7 @@ def count_building_proportion(building_count, building_stock):
 # # SAVE OUTPUT TO EVENT DIR
 # 
 
-# In[206]:
+# In[62]:
 
 
 # Function to save GeoDataFrame to GeoPackage (Overwriting mode)
@@ -163,7 +164,7 @@ def save_to_geopackage(gdf, layer_name="tract_shakemap_pga", eventid = 'nc722827
     print(f"Saved {layer_name} to {GPKG_PATH} (overwritten).")
 
 
-# In[188]:
+# In[63]:
 
 
 def merge_final_df(eventdata, df_output):
@@ -175,21 +176,21 @@ def merge_final_df(eventdata, df_output):
     return final_output
 
 
-# In[ ]:
+# In[64]:
 
 
-def building_clip_analysis(eventid):
+def building_clip_analysis(parent_dir, eventid):
     # overall work flow
     # 1. Read the event data
     print(f"1. Reading event data for event ID: {eventid}")
-    eventdata = read_event_data(eventid)
+    eventdata = read_event_data(parent_dir, eventid)
 
     # 2. Read the building count data
     print("2. Reading building count data...")
-    building_count = read_building_count_by_tract()
+    building_count = read_building_count_by_tract(parent_dir)
     # 3. Read the building stock data
     print("3. Reading building stock data...")
-    building_stock = get_building_stock_data()
+    building_stock = get_building_stock_data(parent_dir)
     # 4. Merge the building count and building stock data
     print("4. Merging building count and building stock data...")
     df_output = count_building_proportion(building_count, building_stock)
@@ -199,19 +200,19 @@ def building_clip_analysis(eventid):
     final_output = merge_final_df(eventdata, df_output)
   
     # 6. Save the final output to the GeoPackage
-    print("6. Saving final output to GeoPackage...")
+    '''print("6. Saving final output to GeoPackage...")
     layer_name = "tract_shakemap_pga"
     save_to_geopackage(final_output, layer_name, eventid)
-    print(f"Building clip analysis completed for event ID: {eventid}")
+    print(f"Building clip analysis completed for event ID: {eventid}")'''
     # 7. Save the final output to a CSV file
     print("Saving final output to CSV...")
-    parent_dir = os.path.dirname(os.getcwd())
+    # parent_dir = os.path.dirname(os.getcwd())
     event_dir = os.path.join(parent_dir, 'ShakeMaps', eventid)
     final_output_csv_path = os.path.join(event_dir, "o3_building_clip_analysis.csv")
     final_output.to_csv(final_output_csv_path, index=False)
 
 
-# In[210]:
+# In[65]:
 
 
 if __name__ == "__main__":
@@ -225,6 +226,7 @@ if __name__ == "__main__":
     print("Pandas version:", pd.__version__)
 
     # Perform building clip analysis for a specific event ID
+    parent_dir = os.path.dirname(os.getcwd())
     eventid = 'nc72282711'
-    building_clip_analysis(eventid)
+    building_clip_analysis(parent_dir, eventid)
 

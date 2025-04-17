@@ -27,9 +27,9 @@ Those are lognormal standard deviations (used to compute confidence intervals or
 Small beta means this certain type of building has similar falling threshold (smaller uncertainty)
 '''
 
-def read_damage_functions():
+def read_damage_functions(parent_dir):
     #dmgfvars = r"..\Tables\DamageFunctionVariables.csv"
-    parent_dir = os.path.dirname(os.getcwd())
+    # parent_dir = os.path.dirname(os.getcwd())
     dmgfvars = os.path.join(parent_dir, "Tables", "DamageFunctionVariables.csv")
     dmgfvarsDF = pd.read_csv(dmgfvars)
     dmgfvarsDF = dmgfvarsDF.drop('Unnamed: 0', axis=1)
@@ -47,7 +47,7 @@ def read_damage_functions():
 
 
 ## 1.b Read Event Data
-def read_event_data(parent_dir = os.path.dirname(os.getcwd()), eventid = 'nc72282711'):
+def read_event_data(parent_dir, eventid = 'nc72282711'):
     """
     Read event data from a GPKG file.
     """
@@ -66,7 +66,7 @@ def read_event_data(parent_dir = os.path.dirname(os.getcwd()), eventid = 'nc7228
     return gdf
 
 
-def main():
+def main(parent_dir, eventid):
 
     '''
     This function:
@@ -78,8 +78,8 @@ def main():
 
 
     # Read in Data
-    dmgfvarsDF, list_bldgtypes,  median_columns, beta_columns = read_damage_functions()
-    event_results = read_event_data()
+    dmgfvarsDF, list_bldgtypes,  median_columns, beta_columns = read_damage_functions(parent_dir)
+    event_results = read_event_data(parent_dir, eventid)
 
     '''
     Assumption 1:
@@ -98,21 +98,22 @@ def main():
     # Keep only the first occurrence of each BLDG_TYPE (i.e., highest priority)
     dmgfvars_hc = dmgfvarsDF.groupby("BLDG_TYPE").first().reset_index().drop(columns=["priority"])
 
-    '''
-    Adding missing columns from o3 results
+    
+    # Adding missing columns from o3 results
     #TODO: need to fix these in o3 instead of here
-    '''
+    
     # In the absence of a TOTAL column i will assume that adding all the categories leads to a total
 
-    event_results['Total_Num_Building'] = event_results['OTHER_OTHER'] + event_results['RESIDENTIAL_MULTI FAMILY'] + event_results['RESIDENTIAL_OTHER']+ event_results['RESIDENTIAL_SINGLE FAMILY']
-
+    #event_results['Total_Num_Building'] = event_results['OTHER_OTHER'] + event_results['RESIDENTIAL_MULTI FAMILY'] + event_results['RESIDENTIAL_OTHER']+ event_results['RESIDENTIAL_SINGLE FAMILY']
+    event_results['Total_Num_Building'] = event_results['TOTAL_BUILDING_COUNT']
     # ALSO IN THE ABSENCE OF PROPER COLUMNS FROM O3 --> I will multiply these here
     # Multiply total buildings by percentage columns to estimate counts
     #TODO: These need to happen in o3 and CANNOT be harcoded
-    building_types_o3 = ['W1', 'W2', 'S1L', 'S1M', 'S1H', 'S2L', 'S2M', 'S2H', 'S3', 'S4L', 'S4M', 'S4H', 'S5L', 'S5M', 'S5H', 'C1L', 'C1M', 'C1H', 'C2L', 'C2M', 'C2H', 'C3L', 'C3M', 'C3H', 'PC1', 'PC2L', 'PC2M', 'PC2H', 'RM1L', 'RM1M', 'RM2L', 'RM2M', 'RM2H', 'URML', 'URMM', 'MH']  # Get all the structure type columns
+    # building_types_o3 = ['W1', 'W2', 'S1L', 'S1M', 'S1H', 'S2L', 'S2M', 'S2H', 'S3', 'S4L', 'S4M', 'S4H', 'S5L', 'S5M', 'S5H', 'C1L', 'C1M', 'C1H', 'C2L', 'C2M', 'C2H', 'C3L', 'C3M', 'C3H', 'PC1', 'PC2L', 'PC2M', 'PC2H', 'RM1L', 'RM1M', 'RM2L', 'RM2M', 'RM2H', 'URML', 'URMM', 'MH']  # Get all the structure type columns
 
-    event_results[building_types_o3] = event_results[building_types_o3].multiply(event_results['Total_Num_Building'], axis=0)
+    # event_results[building_types_o3] = event_results[building_types_o3].multiply(event_results['Total_Num_Building'], axis=0)
     event_results.to_excel('event_results.xlsx', index=False)  # Save the modified DataFrame to an Excel file
+    
     '''
     Step 1: Calculate the probability of each type of damage per building structure
     Goal: In this section, we would like to know what is the probability of each type of damage (slight, mod, compl, extensive) 
@@ -186,6 +187,8 @@ def main():
 
 if __name__ == "__main__":
     start_time = time.time()
-    main()
+    parent_dir = os.path.dirname(os.getcwd())
+    eventid = 'nc72282711'  # Example event ID, replace with actual event ID if needed
+    print(main(parent_dir, eventid))
     print('Damage Assessment Successfully Conducted')
     print("--- {} seconds ---".format(time.time() - start_time))
