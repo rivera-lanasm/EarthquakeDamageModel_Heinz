@@ -14,14 +14,13 @@ import os
 
 # # READ EVENT DATA
 
-# In[193]:
+# In[ ]:
 
 
-def read_event_data(eventid = 'nc72282711'):
+def read_event_data(parent_dir = os.path.dirname(os.getcwd()), eventid = 'nc72282711'):
     """
     Read event data from a GPKG file.
     """
-    parent_dir = os.path.dirname(os.getcwd())
     event_dir = os.path.join(parent_dir, 'ShakeMaps', eventid)
 
     # Update with the actual path

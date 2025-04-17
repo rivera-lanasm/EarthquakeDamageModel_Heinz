@@ -47,21 +47,21 @@ def read_damage_functions():
 
 
 ## 1.b Read Event Data
-def read_event_data(eventid = 'nc72282711'):
+def read_event_data(parent_dir = os.path.dirname(os.getcwd()), eventid = 'nc72282711'):
     """
     Read event data from a GPKG file.
     """
     #TODO: o3 results might be switched to a .csv file so might need to update this accordingly!
 
-    parent_dir = os.path.dirname(os.getcwd())
+    
     event_dir = os.path.join(parent_dir, 'ShakeMaps', eventid)
 
     # Update with the actual path
-    GPKG_PATH = os.path.join(event_dir, "eqmodel_outputs.gpkg")
+    GPKG_PATH = os.path.join(event_dir, "o3_building_clip_analysis.csv")
 
     # Read the layer you want to inspect
     # tract_shakemap_mmi, tract_shakemap_pga, tract_shakemap_pgv --> same idea
-    gdf = gpd.read_file(GPKG_PATH, layer="tract_shakemap_pga")
+    gdf = pd.read_csv(GPKG_PATH)
 
     return gdf
 
@@ -112,7 +112,7 @@ def main():
     building_types_o3 = ['W1', 'W2', 'S1L', 'S1M', 'S1H', 'S2L', 'S2M', 'S2H', 'S3', 'S4L', 'S4M', 'S4H', 'S5L', 'S5M', 'S5H', 'C1L', 'C1M', 'C1H', 'C2L', 'C2M', 'C2H', 'C3L', 'C3M', 'C3H', 'PC1', 'PC2L', 'PC2M', 'PC2H', 'RM1L', 'RM1M', 'RM2L', 'RM2M', 'RM2H', 'URML', 'URMM', 'MH']  # Get all the structure type columns
 
     event_results[building_types_o3] = event_results[building_types_o3].multiply(event_results['Total_Num_Building'], axis=0)
-
+    event_results.to_excel('event_results.xlsx', index=False)  # Save the modified DataFrame to an Excel file
     '''
     Step 1: Calculate the probability of each type of damage per building structure
     Goal: In this section, we would like to know what is the probability of each type of damage (slight, mod, compl, extensive) 

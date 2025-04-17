@@ -18,7 +18,7 @@ from io import BytesIO
 from bs4 import BeautifulSoup
 
 
-# In[16]:
+# In[ ]:
 
 
 # check if directory exist if not make it, return path
@@ -33,12 +33,25 @@ def make_data_path():
     building_data_csv = os.path.join(data_path, 'building_data_csv')
     building_data_gdb = os.path.join(data_path, 'building_data_gdb')
     building_stock_data = os.path.join(data_path, 'building_stock_data')
+    census_shp = os.path.join(data_path, 'census_shp')
+    extracted_census_shp = os.path.join(data_path, 'extracted_census_shp')
+    merged_shapefile = os.path.join(data_path, 'merged_shapefile')
     if not os.path.exists(building_data_csv):
         os.makedirs(building_data_csv)
     if not os.path.exists(building_data_gdb):
         os.makedirs(building_data_gdb)
     if not os.path.exists(building_stock_data):
         os.makedirs(building_stock_data)
+    if not os.path.exists(census_shp):
+        os.makedirs(census_shp)
+    if not os.path.exists(extracted_census_shp):
+        os.makedirs(extracted_census_shp)
+    if not os.path.exists(merged_shapefile):
+        os.makedirs(merged_shapefile)
+    
+    ShakeMaps = os.path.join(parent, 'ShakeMaps')
+    if not os.path.exists(ShakeMaps):
+        os.makedirs(ShakeMaps)
 
     return building_data_csv, building_data_gdb, building_stock_data
 
