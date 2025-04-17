@@ -194,7 +194,7 @@ def calculate_shakemap_statistics(shakemap_gdf, tracts_gdf, output_layer, GPKG_P
     return None
 
 
-def shakemap_into_census_geo(eventdir):
+def shakemap_into_census_geo(eventdir, parent_dir = os.path.dirname(os.getcwd())):
     # ShakeMap GIS File Folder
     # ShakeMapDir = get_shakemap_dir()
 
@@ -210,7 +210,7 @@ def shakemap_into_census_geo(eventdir):
     unique = eventdir.split("\\")[-1]  
 
     # Set data directory
-    parent_dir = os.path.dirname(os.getcwd())
+    
     data_dir = os.path.join(parent_dir, 'Data')
 
     # Get Census Tracts file (download if missing)
@@ -249,7 +249,7 @@ if __name__ == "__main__":
     parent_dir = os.path.dirname(os.getcwd())
     event_dir = os.path.join(parent_dir, 'ShakeMaps', 'nc72282711')
     
-    shakemap_into_census_geo(event_dir)
+    shakemap_into_census_geo(event_dir, parent_dir)
 
     # Update with the actual path
     GPKG_PATH = os.path.join(event_dir, "eqmodel_outputs.gpkg")

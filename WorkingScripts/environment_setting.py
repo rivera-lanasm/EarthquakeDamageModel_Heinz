@@ -15,11 +15,11 @@ import sys
 parent_dir = os.path.dirname(os.getcwd())
 
 
-# In[21]:
+# In[ ]:
 
 
 # check if directory exist if not make it, return path
-def make_directories():
+def make_directories(parent_dir):
     """Create directories for data storage if they do not exist."""
     data_path = os.path.join(parent_dir, 'Data')
     if not os.path.exists(data_path):
@@ -51,10 +51,10 @@ def make_directories():
     return building_data_csv, building_data_gdb, building_stock_data
 
 
-# In[22]:
+# In[ ]:
 
 
-def install_req():
+def install_req(parent_dir):
     """Install required packages for the script."""
     # read requirements.txt
     # and install the packages
@@ -69,13 +69,13 @@ def install_req():
         subprocess.check_call([sys.executable, '-m', 'pip', 'install', package])
 
 
-# In[23]:
+# In[ ]:
 
 
-def setting_env():
+def setting_env(parent_dir):
     """Set up the environment for the script."""
-    make_directories()
-    install_req()
+    make_directories(parent_dir)
+    install_req(parent_dir)
     print("Environment is set up successfully.")
 
 
@@ -83,5 +83,5 @@ def setting_env():
 
 
 if __name__ == "__main__":
-    setting_env()
+    setting_env(parent_dir)
 
