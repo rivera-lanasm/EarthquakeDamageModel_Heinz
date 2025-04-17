@@ -16,7 +16,7 @@ import time
 # Step 1: Read in Data
 
 ## 1.a Read Damage functions Data
-'''
+
 # The damage function variable table explained:
 
 Each row represents a combination of building type and building code
