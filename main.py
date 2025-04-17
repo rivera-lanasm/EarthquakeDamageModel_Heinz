@@ -5,7 +5,8 @@ from WorkingScripts.o1_getshakemap import fetch_earthquake_data, retrieve_event_
 # ========== O2 ====================================
 from WorkingScripts.o2_download_census import download_census
 # ========== O3 ====================================
-
+from WorkingScripts.o3_clip_eventdata_buildingstocks import building_clip_analysis
+from WorkingScripts.o3_get_building_structure import o3_get_building_structures
 # ========== O4 ====================================
 
 # ========== O5 ====================================
