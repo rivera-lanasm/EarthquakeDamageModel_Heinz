@@ -13,7 +13,7 @@ Estimating Building Habitability
 
 # these can be user parameters
 BLDNG_USABILITY = {
-"Slight":{"FU": 0.87, "PU": 0.13, "NU": 0},
+"Slight":{"FU": 1, "PU": 0, "NU": 0},
 "Moderate":{"FU": 0.87, "PU": 0.13, "NU": 0},
 "Extensive":{"FU": 0.22, "PU": 0.25 , "NU": 0.53},
 "Complete":{"FU": 0, "PU": 0.02, "NU": 0.98}
@@ -26,9 +26,9 @@ BLDNG_USABILITY = {
 #     }
     # FU_NH --> 50 --> (10%, 10%, 5%) --> 10%
 UL_SEVERITY = {
-    "low":[.05,.2], 
-    "medium":[.3,.5],
-    "high":[.6, .8]
+    "low": {"FU":[.05,0], "PU": [0.05,.1]},
+    "medium":{"FU": [0,.1], "PU": [.3,.5]},
+    "high":{"FU": [.1,.3], "PU": [.6, .8]}
     }
 
 
@@ -45,7 +45,7 @@ def tract_damage_lvl(damage_dist):
     major damage --> moderate, extreme
     """
     destroyed = damage_dist["perc_complete"]
-    major = damage_dist["perc_moderate"] + damage_dist["perc_extreme"]
+    major = damage_dist["perc_extreme"] # damage_dist["perc_moderate"] 
     if (destroyed > 0.34) | (major > 0.34):
         return "high"
     elif ((destroyed <= 0.34) & (destroyed > 0.1)) | \
@@ -85,8 +85,8 @@ def process_bhi():
                    df["Total_Num_Building_Extensive"].apply(lambda x: BLDNG_USABILITY["Extensive"]["FU"]*x) +\
                    df["Total_Num_Building_Complete"].apply(lambda x: BLDNG_USABILITY["Complete"]["FU"]*x)
     # perc_FU_NH_low
-    df["perc_FU_NH_low"] = df.apply(lambda row: UL_SEVERITY[row['risk_level']][0], axis=1)
-    df["perc_FU_NH_high"] = df.apply(lambda row: UL_SEVERITY[row['risk_level']][1], axis=1)
+    df["perc_FU_NH_low"] = df.apply(lambda row: UL_SEVERITY[row['risk_level']]["FU"][0], axis=1)
+    df["perc_FU_NH_high"] = df.apply(lambda row: UL_SEVERITY[row['risk_level']]["FU"][1], axis=1)
 
     # num_PU
     df["num_PU"] = df["Total_Num_Building_Slight"].apply(lambda x: BLDNG_USABILITY["Slight"]["PU"]*x) +\
@@ -95,8 +95,8 @@ def process_bhi():
                    df["Total_Num_Building_Complete"].apply(lambda x: BLDNG_USABILITY["Complete"]["PU"]*x)
 
     # perc_PU_NH
-    df["perc_PU_NH_low"] = df.apply(lambda row: UL_SEVERITY[row['risk_level']][0], axis=1)
-    df["perc_PU_NH_high"] = df.apply(lambda row: UL_SEVERITY[row['risk_level']][1], axis=1)
+    df["perc_PU_NH_low"] = df.apply(lambda row: UL_SEVERITY[row['risk_level']]["PU"][0], axis=1)
+    df["perc_PU_NH_high"] = df.apply(lambda row: UL_SEVERITY[row['risk_level']]["PU"][1], axis=1)
 
     # num_NU
     df["num_NU"] = df["Total_Num_Building_Slight"].apply(lambda x: BLDNG_USABILITY["Slight"]["NU"]*x) +\
@@ -105,12 +105,17 @@ def process_bhi():
                    df["Total_Num_Building_Complete"].apply(lambda x: BLDNG_USABILITY["Complete"]["NU"]*x)
 
     # BHI_factor = (num_FU*perc_FU_NH + num_PU*perc_PU_NH + num_NU) / N
-    df["BHI_factor_low"] = (df["num_FU"]*(1-df["perc_FU_NH_low"]) + df["num_PU"]*(1-df["perc_PU_NH_low"]) + df["num_NU"])/df["Total_Num_Building"]
-    df["BHI_factor_high"] = (df["num_FU"]*(1-df["perc_FU_NH_high"]) + df["num_PU"]*(1-df["perc_PU_NH_high"]) + df["num_NU"])/df["Total_Num_Building"]
+    df["BHI_factor_low"] = (df["num_FU"]*df["perc_FU_NH_low"] + df["num_PU"]*df["perc_PU_NH_low"] + df["num_NU"])/df["Total_Num_Building"]
+    df["BHI_factor_high"] = (df["num_FU"]*df["perc_FU_NH_high"] + df["num_PU"]*df["perc_PU_NH_high"] + df["num_NU"])/df["Total_Num_Building"]
 
+    print((df["num_FU"]*df["perc_FU_NH_low"]).sort_values(ascending=False))
+    print((df["num_PU"]*df["perc_PU_NH_low"]).sort_values(ascending=False))
+    print(df["num_NU"].sort_values(ascending=False))
+    print((df["num_FU"]*df["perc_FU_NH_low"] + df["num_PU"]*df["perc_PU_NH_low"] + df["num_NU"]).sort_values(ascending=False))
+    print(df["BHI_factor_low"].sort_values(ascending=False))
+    
 
     # join census population data
-    ["Total_Num_Building",]
     final_col_set = ["GEOID", "CENSUSCODE", "max_intensity",
                      "Total_Num_Building",
                      "Total_Num_Building_Slight", "Total_Num_Building_Moderate", 
@@ -138,21 +143,13 @@ if __name__ == "__main__":
     df["population"] = df["population"].astype(int)
     df["shelter_seeking_low"] = df["BHI_factor_low"]*df["population"]
     df["shelter_seeking_high"] = df["BHI_factor_high"]*df["population"]
-    print(df[["Total_Num_Building_Slight", "Total_Num_Building_Moderate", 
-              "Total_Num_Building_Extensive", "Total_Num_Building_Complete"]])
-
-    print(df["shelter_seeking_low"].sum())
-    print(df["shelter_seeking_high"].sum())
-    print(df["shelter_seeking_low"].sum()/df["population"].sum())
-
-    cols = ["GEOID", "max_intensity", "population", "Total_Num_Building", 
+    cols = ["GEOID", "max_intensity", "population", "Total_Num_Building", "risk_level",
             "BHI_factor_low", #"BHI_factor_high",
             "shelter_seeking_low", #"shelter_seeking_high",
-            "numerator_low"]
-            # "Total_Num_Building_Slight", "Total_Num_Building_Moderate", 
-            # "Total_Num_Building_Extensive", "Total_Num_Building_Complete"]
+            "Total_Num_Building_Slight", "Total_Num_Building_Moderate", 
+             "Total_Num_Building_Extensive", "Total_Num_Building_Complete"]
 
-    df["numerator_low"] = round(df["num_FU"]*df["perc_FU_NH_low"] + df["num_PU"]*df["perc_PU_NH_low"] + df["num_NU"],2)
+    # df["numerator_low"] = round(df["num_FU"]*df["perc_FU_NH_low"] + df["num_PU"]*df["perc_PU_NH_low"] + df["num_NU"],2)
     # df["numerator_high"] = round(df["num_FU"]*df["perc_FU_NH_high"] + df["num_PU"]*df["perc_PU_NH_high"] + df["num_NU"],2)
 
     df = df[cols]
@@ -161,10 +158,11 @@ if __name__ == "__main__":
     # df["BHI_factor_high"] = df["BHI_factor_high"].apply(lambda x: round(x,4))
     df["shelter_seeking_low"] = df["shelter_seeking_low"].apply(lambda x: round(x,4))
     # df["shelter_seeking_high"] = df["shelter_seeking_high"].apply(lambda x: round(x,4))
-    print(df.sort_values(by=["shelter_seeking_low"], ascending=False).head(50))
+    # print(df.sort_values(by=["shelter_seeking_low"], ascending=False).head(50))
     
     # BHI (census) = BHI_factor * census tract population --> number of people in census tract with non-habitable housing
     df.to_csv("Data/bhi_output.csv", index=False)
+    print("saved")
     
     #pop_data = pd.read_csv("Data/CA_DECENNIALPL2020.csv")
 

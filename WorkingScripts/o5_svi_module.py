@@ -44,16 +44,23 @@ def read_svi_data():
 #     return svi_data
 
 def map_range(val):
+    """
+    if you have relatively high svi...30% of people living in potentially non habitable will seek shelter potentially.
+
+        questions:
+            1) under what SVI can we basically map the value to 0 --> .4 (above what value are you vulnerable?)
+            2) for socially vuln, what proportion might seek shelter
+    """
     if 0 <= val < 0.2:
-        return 0.1
+        return 0 # 10%
     elif 0.2 <= val < 0.4:
-        return .3
+        return 0 # 20%
     elif 0.4 <= val < 0.8:
-        return .3
+        return .2
     elif 0.8 <= val <= 1.0:
-        return .5
+        return .3
     else:
-        return None  # or np.nan if you're using NumPy
+        return None 
 
 def process_svi():
     
