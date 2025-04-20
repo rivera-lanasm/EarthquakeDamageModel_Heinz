@@ -21,9 +21,10 @@ def read_event_data(eventid):
     return gdf
 
 
-def read_svi_data():
+def read_svi_data(parent_dir):
     # parent_dir = os.path.dirname(os.getcwd())
-    svi_dir = "Data/SVI/SVI_2022_US.csv"# os.path.join(parent_dir, "Data", "SVI", "SVI_2022_US.csv")
+
+    svi_dir = os.path.join(parent_dir, "Data/SVI/SVI_2022_US.csv")# os.path.join(parent_dir, "Data", "SVI", "SVI_2022_US.csv")
     print(svi_dir)
     svi = pd.read_csv(svi_dir)
 

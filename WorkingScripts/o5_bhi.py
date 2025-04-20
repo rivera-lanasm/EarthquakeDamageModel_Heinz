@@ -1,6 +1,7 @@
 import geopandas as gpd
 import pandas as pd
 import numpy as np
+import os
 
 """
 - utility loss as a user parameter --> HOW DO WE PHRASE THIS
@@ -55,18 +56,20 @@ def tract_damage_lvl(damage_dist):
         return "low"
 
 
-def process_bhi():
+def process_bhi(parent_dir, o4_results):
 
     # ==================================
     # step 0 - import population from census, join
         # source: https://data.census.gov/table/DECENNIALPL2020.P1?t=Populations+and+People&g=040XX00US06$1400000
-    pop_data = pd.read_csv("Data/CA_DECENNIALPL2020.csv")
+    census_path = os.path.join(parent_dir, "Data/CA_DECENNIALPL2020.csv")
+    pop_data = pd.read_csv(census_path, low_memory=False)
     pop_data = pop_data.iloc[1:].reset_index(drop=True)[["GEO_ID", "NAME", "P1_001N"]]
     pop_data["GEO_ID"] = pop_data["GEO_ID"].str.replace("1400000US", "", regex=False)
-
+    print(pop_data.head())
     # ==================================
     # step 1 - read results from o4
-    df = gpd.read_file("Data/o4_results.gpkg")
+    df = o4_results.copy()
+    # df = gpd.read_file("Data/o4_results.gpkg")
 
     # get % buildings in each category 
     df["perc_slight"] = df["Total_Num_Building_Slight"]/df["Total_Num_Building"]
@@ -108,15 +111,15 @@ def process_bhi():
     df["BHI_factor_low"] = (df["num_FU"]*df["perc_FU_NH_low"] + df["num_PU"]*df["perc_PU_NH_low"] + df["num_NU"])/df["Total_Num_Building"]
     df["BHI_factor_high"] = (df["num_FU"]*df["perc_FU_NH_high"] + df["num_PU"]*df["perc_PU_NH_high"] + df["num_NU"])/df["Total_Num_Building"]
 
-    print((df["num_FU"]*df["perc_FU_NH_low"]).sort_values(ascending=False))
+    '''print((df["num_FU"]*df["perc_FU_NH_low"]).sort_values(ascending=False))
     print((df["num_PU"]*df["perc_PU_NH_low"]).sort_values(ascending=False))
     print(df["num_NU"].sort_values(ascending=False))
     print((df["num_FU"]*df["perc_FU_NH_low"] + df["num_PU"]*df["perc_PU_NH_low"] + df["num_NU"]).sort_values(ascending=False))
-    print(df["BHI_factor_low"].sort_values(ascending=False))
+    print(df["BHI_factor_low"].sort_values(ascending=False))'''
     
 
     # join census population data
-    final_col_set = ["GEOID", "CENSUSCODE", "max_intensity",
+    final_col_set = ["GEOID", "max_intensity",
                      "Total_Num_Building",
                      "Total_Num_Building_Slight", "Total_Num_Building_Moderate", 
                      "Total_Num_Building_Extensive", "Total_Num_Building_Complete",
@@ -138,8 +141,9 @@ def process_bhi():
     return df
 
 if __name__ == "__main__":
-
-    df = process_bhi()
+    parent_dir = os.path.dirname(os.getcwd())
+    o4_results = pd.read_excel('event_results.xlsx')
+    df = process_bhi(parent_dir, o4_results)
     df["population"] = df["population"].astype(int)
     df["shelter_seeking_low"] = df["BHI_factor_low"]*df["population"]
     df["shelter_seeking_high"] = df["BHI_factor_high"]*df["population"]
