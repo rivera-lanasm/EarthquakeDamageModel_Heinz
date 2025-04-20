@@ -65,10 +65,11 @@ def process_bhi(parent_dir, o4_results):
     pop_data = pd.read_csv(census_path, low_memory=False)
     pop_data = pop_data.iloc[1:].reset_index(drop=True)[["GEO_ID", "NAME", "P1_001N"]]
     pop_data["GEO_ID"] = pop_data["GEO_ID"].str.replace("1400000US", "", regex=False)
-    print(pop_data.head())
+    
     # ==================================
     # step 1 - read results from o4
     df = o4_results.copy()
+    
     # df = gpd.read_file("Data/o4_results.gpkg")
 
     # get % buildings in each category 
@@ -130,7 +131,8 @@ def process_bhi(parent_dir, o4_results):
                      "BHI_factor_low", "BHI_factor_high"]
 
     df = df[final_col_set].sort_values(by=["max_intensity"], ascending=False).reset_index(drop=True)
-
+    df['GEOID'] = np.where(df['GEOID'].str.len() == 11, df['GEOID'], "0"+df['GEOID'])
+    
     # merge pop data
     df = df.merge(pop_data[["GEO_ID", "P1_001N"]], how="inner", left_on="GEOID", right_on="GEO_ID")
     df = df.drop(columns=["GEO_ID"])

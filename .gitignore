@@ -4,6 +4,7 @@ Data/building_stock_data
 Data/census_shp
 Data/extracted_census_shp
 Data/merged_shapefile
+Data/*
 
 #Working Scripts
 WorkingScripts/__pycache__/*
