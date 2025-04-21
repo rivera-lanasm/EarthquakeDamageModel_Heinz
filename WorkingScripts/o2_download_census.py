@@ -54,7 +54,7 @@ def download_census():
             print("Failed to download: {}, code {}".format(file_url, file_response.status_code))
             raise ValueError
 
-        break
+        # break
 
     # 2) Extract all zip files
     print("Extracting ZIP files...")

@@ -29,8 +29,8 @@ Small beta means this certain type of building has similar falling threshold (sm
 
 def read_damage_functions():
     #dmgfvars = r"..\Tables\DamageFunctionVariables.csv"
-    parent_dir = os.path.dirname(os.getcwd())
-    dmgfvars = os.path.join(parent_dir, "Tables", "DamageFunctionVariables.csv")
+    # parent_dir = os.path.dirname(os.getcwd())
+    dmgfvars = os.path.join(os.getcwd(), "Tables", "DamageFunctionVariables.csv")
     dmgfvarsDF = pd.read_csv(dmgfvars)
     dmgfvarsDF = dmgfvarsDF.drop('Unnamed: 0', axis=1)
     list_bldgtypes = dmgfvarsDF["BLDG_TYPE"].unique()
@@ -53,11 +53,11 @@ def read_event_data(eventid = 'nc72282711'):
     """
     #TODO: o3 results might be switched to a .csv file so might need to update this accordingly!
 
-    parent_dir = os.path.dirname(os.getcwd())
-    event_dir = os.path.join(parent_dir, 'ShakeMaps', eventid)
+    # parent_dir = os.path.dirname(os.getcwd())
+    event_dir = os.path.join(os.getcwd())
 
     # Update with the actual path
-    GPKG_PATH = os.path.join(event_dir, "eqmodel_outputs.gpkg")
+    GPKG_PATH = os.path.join(event_dir, "Data", eventid, "eqmodel_outputs.gpkg")
 
     # Read the layer you want to inspect
     # tract_shakemap_mmi, tract_shakemap_pga, tract_shakemap_pgv --> same idea
@@ -66,7 +66,7 @@ def read_event_data(eventid = 'nc72282711'):
     return gdf
 
 
-def main():
+def build_damage_estimates(event_results):
 
     '''
     This function:
@@ -79,7 +79,8 @@ def main():
 
     # Read in Data
     dmgfvarsDF, list_bldgtypes,  median_columns, beta_columns = read_damage_functions()
-    event_results = read_event_data()
+    # read outut from o3
+    # event_results = read_event_data()
 
     '''
     Assumption 1:
@@ -100,7 +101,6 @@ def main():
 
     '''
     Adding missing columns from o3 results
-    #TODO: need to fix these in o3 instead of here
     '''
     # In the absence of a TOTAL column i will assume that adding all the categories leads to a total
 
@@ -111,7 +111,7 @@ def main():
     #TODO: These need to happen in o3 and CANNOT be harcoded
     building_types_o3 = ['W1', 'W2', 'S1L', 'S1M', 'S1H', 'S2L', 'S2M', 'S2H', 'S3', 'S4L', 'S4M', 'S4H', 'S5L', 'S5M', 'S5H', 'C1L', 'C1M', 'C1H', 'C2L', 'C2M', 'C2H', 'C3L', 'C3M', 'C3H', 'PC1', 'PC2L', 'PC2M', 'PC2H', 'RM1L', 'RM1M', 'RM2L', 'RM2M', 'RM2H', 'URML', 'URMM', 'MH']  # Get all the structure type columns
 
-    event_results[building_types_o3] = event_results[building_types_o3].multiply(event_results['Total_Num_Building'], axis=0)
+    # event_results[building_types_o3] = event_results[building_types_o3].multiply(event_results['Total_Num_Building'], axis=0)
 
     '''
     Step 1: Calculate the probability of each type of damage per building structure
@@ -123,17 +123,24 @@ def main():
     prob_dict = {}
 
     # Loop through each building type
+    # print("-----dmgfvars_hc")
+    # print(dmgfvars_hc)
 
-    #TODO: For future, add a check that all buildings in list_bldgtypes exist in o3 results. Otherwise errors might occur
+    #TODO: For future, add a check that all buildings in list_bldgtypes exist in o3 results. 
+    # Otherwise errors might occur
     for bldg_type in list_bldgtypes:
+
+        # bldg_type = "{}_COUNT".format(bldg_type)
 
         # Loop through each PGA level
         for i in range(len(pga_levels)):
 
             # Extract Beta for the current building type
-            beta = dmgfvars_hc.loc[dmgfvars_hc['BLDG_TYPE'] == bldg_type, beta_columns[i]].item() #TODO: this assumes that the list of betas is ranked by damage level. Update this to use ilike to ensure prooper betas are being passed
+            #TODO: this assumes that the list of betas is ranked by damage level. Update this to use ilike to ensure prooper betas are being passed
+            beta = dmgfvars_hc.loc[dmgfvars_hc['BLDG_TYPE'] == bldg_type, beta_columns[i]].item() 
             # Extract the correct median PGA threshold
-            PGA_median = dmgfvars_hc.loc[dmgfvars_hc['BLDG_TYPE'] == bldg_type, median_columns[i]].item() #TODO: this assumes that the list of MEDIANS is ranked by damage level. Update this to use ilike to ensure prooper betas are being passed
+            #TODO: this assumes that the list of MEDIANS is ranked by damage level. Update this to use ilike to ensure prooper betas are being passed
+            PGA_median = dmgfvars_hc.loc[dmgfvars_hc['BLDG_TYPE'] == bldg_type, median_columns[i]].item() 
 
             # Compute probability for the current building type and damage level
             prob_dict[f'P_{pga_levels[i].lower()}_{bldg_type}'] = norm.cdf((1 / beta) * np.log(event_results['min_intensity'] / PGA_median))
@@ -151,8 +158,9 @@ def main():
 
     # Loop through each building type to compute damage estimates
     for bldg_type in list_bldgtypes:
+        bldg_type_col = "{}_COUNT".format(bldg_type)
         # Cumulative damage estimates
-        num_slight[f'numSlight_{bldg_type}'] = df[bldg_type] * df[f'P_slight_{bldg_type}']
+        num_slight[f'numSlight_{bldg_type}'] = df[bldg_type_col] * df[f'P_slight_{bldg_type}']
         num_moderate[f'numModerate_{bldg_type}'] = num_slight[f'numSlight_{bldg_type}'] * df[f'P_mod_{bldg_type}']
         num_extensive[f'numExtensive_{bldg_type}'] = num_moderate[f'numModerate_{bldg_type}'] * df[f'P_ext_{bldg_type}']
         num_complete[f'numComplete_{bldg_type}'] = num_extensive[f'numExtensive_{bldg_type}'] * df[f'P_comp_{bldg_type}']
@@ -179,7 +187,6 @@ def main():
                'Total_Num_Building', 'Total_Num_Building_Slight', 'Total_Num_Building_Moderate', 
                'Total_Num_Building_Extensive', 'Total_Num_Building_Complete']]
     
-    #TODO: save this in folder directly potentially - wait to hear back from team on desired final output of o4
     return df_final
 
 

@@ -24,7 +24,6 @@ def read_event_data(eventid):
 def read_svi_data():
     # parent_dir = os.path.dirname(os.getcwd())
     svi_dir = "Data/SVI/SVI_2022_US.csv"# os.path.join(parent_dir, "Data", "SVI", "SVI_2022_US.csv")
-    print(svi_dir)
     svi = pd.read_csv(svi_dir)
 
     return svi
@@ -56,9 +55,9 @@ def map_range(val):
     elif 0.2 <= val < 0.4:
         return 0 # 20%
     elif 0.4 <= val < 0.8:
-        return .2
+        return .025
     elif 0.8 <= val <= 1.0:
-        return .3
+        return .05
     else:
         return None 
 
