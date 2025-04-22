@@ -248,7 +248,7 @@ if __name__ == "__main__":
     show stats for 2014 napa valley 
     """
     parent_dir = os.path.dirname(os.getcwd())
-    event_dir = os.path.join(parent_dir, 'ShakeMaps', 'nc72282711')
+    event_dir = os.path.join(parent_dir, 'ShakeMaps', 'nc73584926')
     
     shakemap_into_census_geo(event_dir, parent_dir)
 
