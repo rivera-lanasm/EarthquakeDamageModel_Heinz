@@ -1,28 +1,23 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# # LIBARY
-
-# In[57]:
-
-
 import geopandas as gpd
 import pandas as pd
 import numpy as np
 import os
 
-
-# # READ EVENT DATA
-
-# In[58]:
+import requests
+import zipfile
+import os
+from io import BytesIO
+from bs4 import BeautifulSoup
 
 
 def read_event_data(parent_dir, eventid = 'nc72282711'):
     """
     Read event data from a GPKG file.
     """
-    # parent_dir = os.path.dirname(os.getcwd())
-    event_dir = os.path.join(parent_dir, 'ShakeMaps', eventid)
+    event_dir = os.path.join(os.getcwd(), 'Data', eventid)
 
     # Update with the actual path
     GPKG_PATH = os.path.join(event_dir, "eqmodel_outputs.gpkg")
@@ -33,15 +28,11 @@ def read_event_data(parent_dir, eventid = 'nc72282711'):
     # make sure that only row that is not nan is the one we want
     columns = gdf.columns
     gdf = gdf[[columns[0], columns[1], columns[2], columns[3], columns[-1]]]
+    # return gdf
     
     # change to panda dataframe
     pd_gdf = pd.DataFrame(gdf)
     return pd_gdf.loc[pd_gdf[columns[1]].notna()]
-
-
-# # READ BUILDING DATA
-
-# In[59]:
 
 
 # Check if a csv file for a state is exists
@@ -54,11 +45,11 @@ def read_building_count_by_tract(parent_dir):
     """
     # parent_dir = os.path.dirname(os.getcwd())
     # Update with the actual path
-    CSV_PATH = os.path.join(parent_dir, 'Data', 'building_data_csv', "aggregated_building_data.csv")
+    CSV_PATH = os.path.join(os.getcwd(), 'Data', 'building_data_csv', "aggregated_building_data.csv")
     # check if the file exists
     if not os.path.exists(CSV_PATH):
         print(f"CSV file for Building count data is not available.")
-        return None
+        raise ValueError
     else:
         gdf = pd.read_csv(CSV_PATH, dtype={'CENSUSCODE': str})
         gdf['CENSUSCODE'] = np.where(gdf['CENSUSCODE'].str.len() == 11, gdf['CENSUSCODE'], "0"+gdf['CENSUSCODE'])
@@ -66,9 +57,6 @@ def read_building_count_by_tract(parent_dir):
 
 
 # # INTERSECT WITH BUILDING STOCKS
-
-# In[60]:
-
 
 def get_building_stock_data(parent_dir):
     """
@@ -79,14 +67,14 @@ def get_building_stock_data(parent_dir):
 
     
     # check if the folder exists
-    CSV_PATH = os.path.join(parent_dir, 'Data', 'building_stock_data', 'Building_Percentages_Per_Tract_ALLSTATES.csv')
+    CSV_PATH = os.path.join(os.getcwd(), 'Tables', 'Building_Percentages_Per_Tract_ALLSTATES.csv')
     
     # Change data types
     cols = ['W1', 'W2', 'S1L', 'S1M', 'S1H', 'S2L', 'S2M',
-       'S2H', 'S3', 'S4L', 'S4M', 'S4H', 'S5L', 'S5M', 'S5H', 'C1L', 'C1M',
-       'C1H', 'C2L', 'C2M', 'C2H', 'C3L', 'C3M', 'C3H', 'PC1', 'PC2L', 'PC2M',
-       'PC2H', 'RM1L', 'RM1M', 'RM2L', 'RM2M', 'RM2H', 'URML', 'URMM', 'MH',
-       'Total']
+            'S2H', 'S3', 'S4L', 'S4M', 'S4H', 'S5L', 'S5M', 'S5H', 'C1L', 'C1M',
+            'C1H', 'C2L', 'C2M', 'C2H', 'C3L', 'C3M', 'C3H', 'PC1', 'PC2L', 'PC2M',
+            'PC2H', 'RM1L', 'RM1M', 'RM2L', 'RM2M', 'RM2H', 'URML', 'URMM', 'MH',
+            'Total']
     # create a library for data type change
     dtypes = {}
     for col in cols:
@@ -101,16 +89,12 @@ def get_building_stock_data(parent_dir):
 
     else:
         print(f"Building stock data does not exist at {CSV_PATH}")
-        # create or download the files
-        pass
+        raise ValueError
     
     return gdf
 
 
-# # JOIN COUNT BUILDING DATA AND BUILDING STOCK DATA
-
-# In[61]:
-
+# JOIN COUNT BUILDING DATA AND BUILDING STOCK DATA
 
 # take df_pivot and building_stock and merge them
 def count_building_proportion(building_count, building_stock):
@@ -136,11 +120,7 @@ def count_building_proportion(building_count, building_stock):
     return merged_df
 
 
-# # SAVE OUTPUT TO EVENT DIR
-# 
-
-# In[62]:
-
+# SAVE OUTPUT TO EVENT DIR
 
 # Function to save GeoDataFrame to GeoPackage (Overwriting mode)
 def save_to_geopackage(gdf, layer_name="tract_shakemap_pga", eventid = 'nc72282711'):
@@ -164,55 +144,42 @@ def save_to_geopackage(gdf, layer_name="tract_shakemap_pga", eventid = 'nc722827
     print(f"Saved {layer_name} to {GPKG_PATH} (overwritten).")
 
 
-# In[63]:
-
-
-def merge_final_df(eventdata, df_output):
-    """
-    Merge the final dataframe with the event data."""
-    final_output = pd.merge(eventdata, df_output, left_on='GEOID', right_on='CENSUSCODE', how='left')
-    final_output = final_output.ffill(axis=0)
-    final_output.drop(columns=['CENSUSCODE'], axis=1, inplace=True)
-    return final_output
-
-
-# In[64]:
-
-
 def building_clip_analysis(parent_dir, eventid):
     # overall work flow
     # 1. Read the event data
     print(f"1. Reading event data for event ID: {eventid}")
-    eventdata = read_event_data(parent_dir, eventid)
+    eventdata = read_event_data(eventid)
+    # print(eventdata)
 
     # 2. Read the building count data
     print("2. Reading building count data...")
-    building_count = read_building_count_by_tract(parent_dir)
+    building_count = read_building_count_by_tract()
+    # print(building_count)
+
     # 3. Read the building stock data
     print("3. Reading building stock data...")
-    building_stock = get_building_stock_data(parent_dir)
+    building_stock = get_building_stock_data()
+    # print(building_stock)
+
     # 4. Merge the building count and building stock data
     print("4. Merging building count and building stock data...")
     df_output = count_building_proportion(building_count, building_stock)
 
     # 5. Merge the event data and the merged building count and building stock data
     print("5. Merging event data with building data...")
-    final_output = merge_final_df(eventdata, df_output)
-  
+    final_output = pd.merge(eventdata, df_output, left_on='GEOID', right_on='CENSUSCODE', how='left')
+    final_output.ffill(inplace=True)
+    final_output.drop(columns=['CENSUSCODE'], axis=1, inplace=True)
+    
     # 6. Save the final output to the GeoPackage
     '''print("6. Saving final output to GeoPackage...")
     layer_name = "tract_shakemap_pga"
-    save_to_geopackage(final_output, layer_name, eventid)
-    print(f"Building clip analysis completed for event ID: {eventid}")'''
-    # 7. Save the final output to a CSV file
-    print("Saving final output to CSV...")
-    # parent_dir = os.path.dirname(os.getcwd())
-    event_dir = os.path.join(parent_dir, 'ShakeMaps', eventid)
-    final_output_csv_path = os.path.join(event_dir, "o3_building_clip_analysis.csv")
-    final_output.to_csv(final_output_csv_path, index=False)
-
-
-# In[65]:
+    # print(final_output)
+    # save_to_geopackage(final_output, layer_name, eventid)
+    # print(final_output.columns)
+    print(f"Building clip analysis completed for event ID: {eventid}")
+    
+    return final_output
 
 
 if __name__ == "__main__":

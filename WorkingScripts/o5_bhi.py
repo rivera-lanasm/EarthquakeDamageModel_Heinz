@@ -16,7 +16,7 @@ Estimating Building Habitability
 BLDNG_USABILITY = {
 "Slight":{"FU": 1, "PU": 0, "NU": 0},
 "Moderate":{"FU": 0.87, "PU": 0.13, "NU": 0},
-"Extensive":{"FU": 0.22, "PU": 0.25 , "NU": 0.53},
+"Extensive":{"FU": 0.25, "PU": 0.5 , "NU": 0.25},
 "Complete":{"FU": 0, "PU": 0.02, "NU": 0.98}
     }
 
@@ -27,7 +27,7 @@ BLDNG_USABILITY = {
 #     }
     # FU_NH --> 50 --> (10%, 10%, 5%) --> 10%
 UL_SEVERITY = {
-    "low": {"FU":[.05,0], "PU": [0.05,.1]},
+    "low": {"FU":[0,0.05], "PU": [0.05,0.1]}, # fully usable (0 - 5% non habitable), partially usable (5 - 10%) 
     "medium":{"FU": [0,.1], "PU": [.3,.5]},
     "high":{"FU": [.1,.3], "PU": [.6, .8]}
     }
@@ -56,20 +56,18 @@ def tract_damage_lvl(damage_dist):
         return "low"
 
 
-def process_bhi(parent_dir, o4_results):
+def process_bhi(df):
 
     # ==================================
     # step 0 - import population from census, join
         # source: https://data.census.gov/table/DECENNIALPL2020.P1?t=Populations+and+People&g=040XX00US06$1400000
-    census_path = os.path.join(parent_dir, "Data/CA_DECENNIALPL2020.csv")
-    pop_data = pd.read_csv(census_path, low_memory=False)
+    pop_data = pd.read_csv("Data/CA_DECENNIALPL2020.csv")
+    # print(pop_data.head())
     pop_data = pop_data.iloc[1:].reset_index(drop=True)[["GEO_ID", "NAME", "P1_001N"]]
     pop_data["GEO_ID"] = pop_data["GEO_ID"].str.replace("1400000US", "", regex=False)
     
     # ==================================
     # step 1 - read results from o4
-    df = o4_results.copy()
-    
     # df = gpd.read_file("Data/o4_results.gpkg")
 
     # get % buildings in each category 
@@ -112,11 +110,10 @@ def process_bhi(parent_dir, o4_results):
     df["BHI_factor_low"] = (df["num_FU"]*df["perc_FU_NH_low"] + df["num_PU"]*df["perc_PU_NH_low"] + df["num_NU"])/df["Total_Num_Building"]
     df["BHI_factor_high"] = (df["num_FU"]*df["perc_FU_NH_high"] + df["num_PU"]*df["perc_PU_NH_high"] + df["num_NU"])/df["Total_Num_Building"]
 
-    '''print((df["num_FU"]*df["perc_FU_NH_low"]).sort_values(ascending=False))
-    print((df["num_PU"]*df["perc_PU_NH_low"]).sort_values(ascending=False))
-    print(df["num_NU"].sort_values(ascending=False))
-    print((df["num_FU"]*df["perc_FU_NH_low"] + df["num_PU"]*df["perc_PU_NH_low"] + df["num_NU"]).sort_values(ascending=False))
-    print(df["BHI_factor_low"].sort_values(ascending=False))'''
+    # apply residential factor
+    # resi_df = pd.read_csv("/home/rivlanm/cmu/EarthquakeDamageModel_Heinz/Data/building_data_csv/CA_building_data.csv")
+
+    # (.5)*(.5) = .25
     
 
     # join census population data
@@ -142,33 +139,27 @@ def process_bhi(parent_dir, o4_results):
 
     return df
 
-if __name__ == "__main__":
-    parent_dir = os.path.dirname(os.getcwd())
-    o4_results = pd.read_excel('event_results.xlsx')
-    df = process_bhi(parent_dir, o4_results)
-    df["population"] = df["population"].astype(int)
-    df["shelter_seeking_low"] = df["BHI_factor_low"]*df["population"]
-    df["shelter_seeking_high"] = df["BHI_factor_high"]*df["population"]
-    cols = ["GEOID", "max_intensity", "population", "Total_Num_Building", "risk_level",
-            "BHI_factor_low", #"BHI_factor_high",
-            "shelter_seeking_low", #"shelter_seeking_high",
-            "Total_Num_Building_Slight", "Total_Num_Building_Moderate", 
-             "Total_Num_Building_Extensive", "Total_Num_Building_Complete"]
+# if __name__ == "__main__":
 
-    # df["numerator_low"] = round(df["num_FU"]*df["perc_FU_NH_low"] + df["num_PU"]*df["perc_PU_NH_low"] + df["num_NU"],2)
-    # df["numerator_high"] = round(df["num_FU"]*df["perc_FU_NH_high"] + df["num_PU"]*df["perc_PU_NH_high"] + df["num_NU"],2)
+#     df = process_bhi()
 
-    df = df[cols]
 
-    df["BHI_factor_low"] = df["BHI_factor_low"].apply(lambda x: round(x,4))
-    # df["BHI_factor_high"] = df["BHI_factor_high"].apply(lambda x: round(x,4))
-    df["shelter_seeking_low"] = df["shelter_seeking_low"].apply(lambda x: round(x,4))
-    # df["shelter_seeking_high"] = df["shelter_seeking_high"].apply(lambda x: round(x,4))
-    # print(df.sort_values(by=["shelter_seeking_low"], ascending=False).head(50))
+#     df["population"] = df["population"].astype(int)
+#     df["shelter_seeking_low"] = df["BHI_factor_low"]*df["population"]
+#     df["shelter_seeking_high"] = df["BHI_factor_high"]*df["population"]
+#     cols = ["GEOID", "max_intensity", "population", "Total_Num_Building", "risk_level",
+#             "BHI_factor_low", #"BHI_factor_high",
+#             "shelter_seeking_low", #"shelter_seeking_high",
+#             "Total_Num_Building_Slight", "Total_Num_Building_Moderate", 
+#              "Total_Num_Building_Extensive", "Total_Num_Building_Complete"]
+
+#     df = df[cols]
+
+#     df["BHI_factor_low"] = df["BHI_factor_low"].apply(lambda x: round(x,4))
+#     df["shelter_seeking_low"] = df["shelter_seeking_low"].apply(lambda x: round(x,4))
     
-    # BHI (census) = BHI_factor * census tract population --> number of people in census tract with non-habitable housing
-    df.to_csv("Data/bhi_output.csv", index=False)
-    print("saved")
+#     # BHI (census) = BHI_factor * census tract population --> number of people in census tract with non-habitable housing
+#     df.to_csv("Data/bhi_output.csv", index=False)
     
     #pop_data = pd.read_csv("Data/CA_DECENNIALPL2020.csv")
 

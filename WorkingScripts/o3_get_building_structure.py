@@ -3,8 +3,6 @@
 
 # # LIBARY
 
-# In[3]:
-
 
 import geopandas as gpd
 import pandas as pd
@@ -16,9 +14,6 @@ import zipfile
 import os
 from io import BytesIO
 from bs4 import BeautifulSoup
-
-
-# In[ ]:
 
 
 # check if directory exist if not make it, return path
@@ -58,11 +53,8 @@ def make_data_path():
 
 # # DOWNLOAD BUILDING DATA
 
-# This notebook is to download building data, extract it, then aggregate the data to count the number of building for each census tract.
-
-# In[17]:
-
-
+# This notebook is to download building data, extract it, then 
+# aggregate the data to count the number of building for each census tract.
 def fetch_state_links():
     """Fetches state names and their corresponding links from the webpage."""
    
@@ -80,9 +72,6 @@ def fetch_state_links():
 def get_link_by_state(state_name, state_links):
     """Returns the link for a given state name."""
     return state_links.get(state_name, "State not found")   
-
-
-# In[18]:
 
 
 def download_and_extract_zip(state_name, state_links):
@@ -113,11 +102,6 @@ def download_and_extract_zip(state_name, state_links):
         print("Failed to download the ZIP file.")
 
 
-# # READ BUILDING DATA
-
-# In[19]:
-
-
 def gdb_path_by_state(stateid):
     """Returns the path to the GDB file for a given state ID."""
     cwd = os.getcwd()
@@ -141,8 +125,6 @@ def get_building_data_csv(stateid):
     return os.path.join(building_data_directory, f'{stateid}_building_data.csv')
 
 
-# In[20]:
-
 
 # read only the specified columns
 def read_cols(path):
@@ -152,9 +134,6 @@ def read_cols(path):
     return gpd.read_file(path, columns=cols)
     
 # only read specific columns, it can reduce the memory usage and time for each state    
-
-
-# In[21]:
 
 
 def read_building_data(stateid):
@@ -180,8 +159,6 @@ def read_building_data(stateid):
 
 
 # # AGGREGATE BUILDING DATA
-
-# In[22]:
 
 
 # function to remap OCC_CLS and PRIM_OCC
@@ -218,8 +195,6 @@ def aggregate_building_counts(gdf):
     return count_building_data
 
 
-# In[23]:
-
 
 def pivot_building_data(count_building_data):
     """Pivot the building data to get the count of buildings by OCC_CLS and PRIM_OCC.
@@ -238,9 +213,6 @@ def pivot_building_data(count_building_data):
     df_pivot['TOTAL_RESIDENTIAL'] = df_pivot['RESIDENTIAL_MULTI FAMILY'] + df_pivot['RESIDENTIAL_SINGLE FAMILY'] + df_pivot['RESIDENTIAL_OTHER']
     df_pivot['TOTAL_BUILDING'] = df_pivot['TOTAL_RESIDENTIAL'] + df_pivot['OTHER_OTHER']
     return df_pivot
-
-
-# In[7]:
 
 
 def aggregate_building_data():
@@ -266,35 +238,37 @@ def aggregate_building_data():
     building_data = building_data.drop(columns=['OTHER_SINGLE FAMILY'], errors='ignore')
 
     # sum all building
-    building_data['TOTAL_BUILDING_COUNT'] = building_data['OTHER_OTHER']+building_data['RESIDENTIAL_MULTI FAMILY']+building_data['RESIDENTIAL_OTHER']+building_data['RESIDENTIAL_SINGLE FAMILY']
+    building_data['TOTAL_BUILDING_COUNT'] = building_data['OTHER_OTHER'] + \
+                                            building_data['RESIDENTIAL_MULTI FAMILY'] + \
+                                            building_data['RESIDENTIAL_OTHER'] + \
+                                            building_data['RESIDENTIAL_SINGLE FAMILY']
     
     # save the building data to a csv file
     building_data.to_csv(os.path.join(path, 'aggregated_building_data.csv'), index=False)
 
-
-# In[ ]:
-
+    return None
 
 def o3_get_building_structures():
     """Download and extract building data for all states from the given URL."""
 
     # get url from webpage
     state_links = fetch_state_links()
+    print(state_links["California"])
 
     # Iterate through the state names and download the corresponding ZIP files
     i = 0
     for state in state_links:
-        if i < len(state_links):
+        if state != "California":
+            continue
+        if i <= 50:
             download_and_extract_zip(state, state_links)
             i += 1
         else:
             break
     
-
     # states data
     states_data = [
-        ("Alabama", "AL"), ("Alaska", "AK")
-        ("Arizona", "AZ"), ("Arkansas", "AR"), ("California", "CA"), ("Colorado", "CO"), ("Connecticut", "CT"), ("Delaware", "DE"),
+        ("Alabama", "AL"), ("Alaska", "AK"), ("Arizona", "AZ"), ("Arkansas", "AR"), ("California", "CA"), ("Colorado", "CO"), ("Connecticut", "CT"), ("Delaware", "DE"),
         ("Florida", "FL"), ("Georgia", "GA"), ("Hawaii", "HI"), ("Idaho", "ID"),
         ("Illinois", "IL"), ("Indiana", "IN"), ("Iowa", "IA"), ("Kansas", "KS"),
         ("Kentucky", "KY"), ("Louisiana", "LA"), ("Maine", "ME"), ("Maryland", "MD"),
@@ -309,6 +283,8 @@ def o3_get_building_structures():
 
     # read the shapefiles for all states
     for state_name, stateid in states_data:
+        if state_name == "California":
+            continue
         print(f"Reading building data for {state_name}")
         filetype, gdf = read_building_data(stateid)
         if filetype == 'csv':
@@ -323,13 +299,13 @@ def o3_get_building_structures():
     # concatenate all the csv files
     aggregate_building_data()
 
-
-# In[ ]:
+    return None
 
 
 if __name__ == "__main__":
     # make the data path
     building_data_csv, building_data_gdb, building_stock_data = make_data_path()
+        
     # download and extract the building data
     o3_get_building_structures()
 

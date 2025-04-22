@@ -199,18 +199,17 @@ def shakemap_into_census_geo(eventdir, parent_dir = os.path.dirname(os.getcwd())
     # ShakeMapDir = get_shakemap_dir()
 
     mi, pgv, pga = get_shakemap_files(eventdir)
-    print("mi: {}".format(mi))
-    mi_gpd = gpd.read_file(mi)
-    print("pgv: {}".format(pgv))
-    pgv_gpd = gpd.read_file(pgv)
-    print("pga: {}".format(pga))
+    # print("mi: {}".format(mi))
+    # mi_gpd = gpd.read_file(mi)
+    # print("pgv: {}".format(pgv))
+    # pgv_gpd = gpd.read_file(pgv)
     pga_gpd = gpd.read_file(pga)
 
     # Extracts event ID from the directory path
     unique = eventdir.split("\\")[-1]  
 
     # Set data directory
-    
+    parent_dir = os.getcwd()
     data_dir = os.path.join(parent_dir, 'Data')
 
     # Get Census Tracts file (download if missing)
@@ -229,15 +228,17 @@ def shakemap_into_census_geo(eventdir, parent_dir = os.path.dirname(os.getcwd())
         gdf.to_file(GPKG_PATH, layer="init", driver="GPKG", mode="w")  # Save as an empty layer
 
     # Clip ShakeMap layers to census tracts
-    mi_clipped = clip_shakemap_to_tracts(mi_gpd, census_gpd, "shakemap_tractclip_mmi", GPKG_PATH)
-    pgv_clipped = clip_shakemap_to_tracts(pgv_gpd, census_gpd, "shakemap_tractclip_pgv", GPKG_PATH)
+    # mi_clipped = clip_shakemap_to_tracts(mi_gpd, census_gpd, "shakemap_tractclip_mmi", GPKG_PATH)
+    # pgv_clipped = clip_shakemap_to_tracts(pgv_gpd, census_gpd, "shakemap_tractclip_pgv", GPKG_PATH)
     pga_clipped = clip_shakemap_to_tracts(pga_gpd, census_gpd, "shakemap_tractclip_pga", GPKG_PATH)
+    print("=======================  pga clipped ====")
+    print(pga_clipped)
 
     ####    Now that we've clipped ShakeMap data to census tracts, 
     #       the next step is to calculate statistical 
     #       summaries (max, min, mean) for each tract. 
-    calculate_shakemap_statistics(mi_clipped, census_gpd, "tract_shakemap_mmi", GPKG_PATH)
-    calculate_shakemap_statistics(pgv_clipped, census_gpd, "tract_shakemap_pgv", GPKG_PATH)
+    # calculate_shakemap_statistics(mi_clipped, census_gpd, "tract_shakemap_mmi", GPKG_PATH)
+    # calculate_shakemap_statistics(pgv_clipped, census_gpd, "tract_shakemap_pgv", GPKG_PATH)
     calculate_shakemap_statistics(pga_clipped, census_gpd, "tract_shakemap_pga", GPKG_PATH)
 
     return None

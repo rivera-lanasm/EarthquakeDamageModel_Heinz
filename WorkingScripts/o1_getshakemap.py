@@ -86,9 +86,9 @@ def download_and_extract_shakemap(event):
     event_folder = os.path.join(SHAKEMAP_DIR, eventid)
 
     # Check if the event folder already exists (we do NOT overwrite)
-    if os.path.exists(event_folder):
-        print(f"{eventid}: ShakeMap already downloaded.")
-        return event_folder
+    # if os.path.exists(event_folder):
+    #     print(f"{eventid}: ShakeMap already downloaded.")
+    #     return event_folder
 
     # Ensure base directory exists
     os.makedirs(event_folder, exist_ok=True)
@@ -124,7 +124,7 @@ def download_and_extract_shakemap(event):
 
 
 if __name__ == "__main__":
-    EVENTID = "nc72282711"  # Example event ID
+    EVENTID = "nc72282711"
     feed_url = FEEDURL.format(EVENTID)
     jdict = fetch_earthquake_data(feed_url=feed_url)
 
