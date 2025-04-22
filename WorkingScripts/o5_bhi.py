@@ -56,12 +56,13 @@ def tract_damage_lvl(damage_dist):
         return "low"
 
 
-def process_bhi(df):
+def process_bhi(df, parent_dir):
 
     # ==================================
     # step 0 - import population from census, join
         # source: https://data.census.gov/table/DECENNIALPL2020.P1?t=Populations+and+People&g=040XX00US06$1400000
-    pop_data = pd.read_csv("Data/CA_DECENNIALPL2020.csv")
+    pop_path = os.path.join(parent_dir, "Data", "CA_DECENNIALPL2020.csv")
+    pop_data = pd.read_csv(pop_path)
     # print(pop_data.head())
     pop_data = pop_data.iloc[1:].reset_index(drop=True)[["GEO_ID", "NAME", "P1_001N"]]
     pop_data["GEO_ID"] = pop_data["GEO_ID"].str.replace("1400000US", "", regex=False)

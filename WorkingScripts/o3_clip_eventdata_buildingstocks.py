@@ -17,7 +17,7 @@ def read_event_data(parent_dir, eventid = 'nc72282711'):
     """
     Read event data from a GPKG file.
     """
-    event_dir = os.path.join(os.getcwd(), 'Data', eventid)
+    event_dir = os.path.join(parent_dir, 'ShakeMaps', eventid)
 
     # Update with the actual path
     GPKG_PATH = os.path.join(event_dir, "eqmodel_outputs.gpkg")
@@ -45,7 +45,7 @@ def read_building_count_by_tract(parent_dir):
     """
     # parent_dir = os.path.dirname(os.getcwd())
     # Update with the actual path
-    CSV_PATH = os.path.join(os.getcwd(), 'Data', 'building_data_csv', "aggregated_building_data.csv")
+    CSV_PATH = os.path.join(parent_dir, 'Data', 'building_data_csv', "aggregated_building_data.csv")
     # check if the file exists
     if not os.path.exists(CSV_PATH):
         print(f"CSV file for Building count data is not available.")
@@ -67,7 +67,7 @@ def get_building_stock_data(parent_dir):
 
     
     # check if the folder exists
-    CSV_PATH = os.path.join(os.getcwd(), 'Tables', 'Building_Percentages_Per_Tract_ALLSTATES.csv')
+    CSV_PATH = os.path.join(parent_dir, 'Tables', 'Building_Percentages_Per_Tract_ALLSTATES.csv')
     
     # Change data types
     cols = ['W1', 'W2', 'S1L', 'S1M', 'S1H', 'S2L', 'S2M',
@@ -148,17 +148,17 @@ def building_clip_analysis(parent_dir, eventid):
     # overall work flow
     # 1. Read the event data
     print(f"1. Reading event data for event ID: {eventid}")
-    eventdata = read_event_data(eventid)
+    eventdata = read_event_data(parent_dir, eventid)
     # print(eventdata)
 
     # 2. Read the building count data
     print("2. Reading building count data...")
-    building_count = read_building_count_by_tract()
+    building_count = read_building_count_by_tract(parent_dir)
     # print(building_count)
 
     # 3. Read the building stock data
     print("3. Reading building stock data...")
-    building_stock = get_building_stock_data()
+    building_stock = get_building_stock_data(parent_dir)
     # print(building_stock)
 
     # 4. Merge the building count and building stock data
@@ -177,8 +177,9 @@ def building_clip_analysis(parent_dir, eventid):
     # print(final_output)
     # save_to_geopackage(final_output, layer_name, eventid)
     # print(final_output.columns)
-    print(f"Building clip analysis completed for event ID: {eventid}")
-    
+    print(f"Building clip analysis completed for event ID: {eventid}")'''
+    final_output.to_csv(os.path.join(parent_dir, 'ShakeMaps', eventid, "building_clip_analysis.csv"), index=False)
+    print(final_output)
     return final_output
 
 

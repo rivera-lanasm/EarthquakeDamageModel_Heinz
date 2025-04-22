@@ -23,7 +23,9 @@ def read_event_data(eventid):
 
 def read_svi_data(parent_dir):
     # parent_dir = os.path.dirname(os.getcwd())
-    svi_dir = "Data/SVI/SVI_2022_US.csv"# os.path.join(parent_dir, "Data", "SVI", "SVI_2022_US.csv")
+
+    svi_dir = os.path.join(parent_dir, "Data", "SVI", "SVI_2022_US.csv")
+    # "Data/SVI/SVI_2022_US.csv"# os.path.join(parent_dir, "Data", "SVI", "SVI_2022_US.csv")
     svi = pd.read_csv(svi_dir)
 
     return svi
@@ -61,10 +63,10 @@ def map_range(val):
     else:
         return None 
 
-def process_svi():
+def process_svi(parent_dir):
     
     #event_data = read_event_data(eventid)
-    svi_data = read_svi_data()
+    svi_data = read_svi_data(parent_dir)
     svi_data = svi_data[['FIPS', 'RPL_THEMES']].rename(columns={'RPL_THEMES': "SVI_Value"})
     #final = process_svi(event_data, svi_data = svi)
     svi_data["SVI_Value_Mapped"] = svi_data["SVI_Value"].apply(map_range)

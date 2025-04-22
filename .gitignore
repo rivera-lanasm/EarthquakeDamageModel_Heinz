@@ -7,7 +7,7 @@ Data/merged_shapefile
 Data/*
 
 #Working Scripts
-WorkingScripts/__pycache__/*
+WorkingScripts/__pycache__/8
 
 # Shakemaps
 ShakeMaps/*

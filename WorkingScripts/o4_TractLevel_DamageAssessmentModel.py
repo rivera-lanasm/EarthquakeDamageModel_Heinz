@@ -45,7 +45,7 @@ Small beta means this certain type of building has similar falling threshold (sm
 def read_damage_functions(parent_dir):
     #dmgfvars = r"..\Tables\DamageFunctionVariables.csv"
     # parent_dir = os.path.dirname(os.getcwd())
-    dmgfvars = os.path.join(os.getcwd(), "Tables", "DamageFunctionVariables.csv")
+    dmgfvars = os.path.join(parent_dir, "Tables", "DamageFunctionVariables.csv")
     dmgfvarsDF = pd.read_csv(dmgfvars)
     dmgfvarsDF = dmgfvarsDF.drop('Unnamed: 0', axis=1)
     list_bldgtypes = dmgfvarsDF["BLDG_TYPE"].unique()
@@ -69,7 +69,7 @@ def read_event_data(parent_dir, eventid = 'nc72282711'):
     #TODO: o3 results might be switched to a .csv file so might need to update this accordingly!
 
     # parent_dir = os.path.dirname(os.getcwd())
-    event_dir = os.path.join(os.getcwd())
+    event_dir = os.path.join(parent_dir, 'ShakeMaps', eventid)
 
     # Update with the actual path
     GPKG_PATH = os.path.join(event_dir, "Data", eventid, "eqmodel_outputs.gpkg")
@@ -81,7 +81,7 @@ def read_event_data(parent_dir, eventid = 'nc72282711'):
     return gdf
 
 
-def build_damage_estimates(event_results):
+def build_damage_estimates(event_results, parent_dir):
 
     '''
     This function:
@@ -93,7 +93,7 @@ def build_damage_estimates(event_results):
 
 
     # Read in Data
-    dmgfvarsDF, list_bldgtypes,  median_columns, beta_columns = read_damage_functions()
+    dmgfvarsDF, list_bldgtypes,  median_columns, beta_columns = read_damage_functions(parent_dir)
     # read outut from o3
     # event_results = read_event_data()
 
@@ -173,7 +173,7 @@ def build_damage_estimates(event_results):
 
     # Loop through each building type to compute damage estimates
     for bldg_type in list_bldgtypes:
-        bldg_type_col = "{}_COUNT".format(bldg_type)
+        bldg_type_col = bldg_type
         # Cumulative damage estimates
         num_slight[f'numSlight_{bldg_type}'] = df[bldg_type_col] * df[f'P_slight_{bldg_type}']
         num_moderate[f'numModerate_{bldg_type}'] = num_slight[f'numSlight_{bldg_type}'] * df[f'P_mod_{bldg_type}']
@@ -210,6 +210,9 @@ if __name__ == "__main__":
     start_time = time.time()
     parent_dir = os.path.dirname(os.getcwd())
     eventid = 'nc72282711'  # Example event ID, replace with actual event ID if needed
-    print(main(parent_dir, eventid))
+    df = pd.read_csv(os.path.join(parent_dir, 'ShakeMaps', eventid, 'building_clip_analysis.csv'))
+    df_final = build_damage_estimates(df)
+    df_final.to_csv('o4_result.csv', index=False)
+    print(build_damage_estimates(df))
     print('Damage Assessment Successfully Conducted')
     print("--- {} seconds ---".format(time.time() - start_time))
