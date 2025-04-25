@@ -122,13 +122,13 @@ def download_and_extract_shakemap(event):
     return event_folder  # Return the extracted folder path
 
 
-if __name__ == "__main__":
-    EVENTID = "nc72282711"
-    feed_url = FEEDURL.format(EVENTID)
-    jdict = fetch_earthquake_data(feed_url=feed_url)
+# if __name__ == "__main__":
+#     EVENTID = "nc72282711"
+#     feed_url = FEEDURL.format(EVENTID)
+#     jdict = fetch_earthquake_data(feed_url=feed_url)
 
-    event = retrieve_event_data(jdict)
-    download_and_extract_shakemap(event)
+#     event = retrieve_event_data(jdict)
+#     download_and_extract_shakemap(event)
 
 
 

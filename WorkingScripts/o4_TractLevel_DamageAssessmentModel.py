@@ -47,7 +47,7 @@ def read_damage_functions():
 
 
 ## 1.b Read Event Data
-def read_event_data(eventid = 'nc72282711'):
+def read_event_data():
     """
     Read event data from a GPKG file.
     """
@@ -109,8 +109,7 @@ def build_damage_estimates(event_results):
     # ALSO IN THE ABSENCE OF PROPER COLUMNS FROM O3 --> I will multiply these here
     # Multiply total buildings by percentage columns to estimate counts
     #TODO: These need to happen in o3 and CANNOT be harcoded
-    building_types_o3 = ['W1', 'W2', 'S1L', 'S1M', 'S1H', 'S2L', 'S2M', 'S2H', 'S3', 'S4L', 'S4M', 'S4H', 'S5L', 'S5M', 'S5H', 'C1L', 'C1M', 'C1H', 'C2L', 'C2M', 'C2H', 'C3L', 'C3M', 'C3H', 'PC1', 'PC2L', 'PC2M', 'PC2H', 'RM1L', 'RM1M', 'RM2L', 'RM2M', 'RM2H', 'URML', 'URMM', 'MH']  # Get all the structure type columns
-
+    # building_types_o3 = ['W1', 'W2', 'S1L', 'S1M', 'S1H', 'S2L', 'S2M', 'S2H', 'S3', 'S4L', 'S4M', 'S4H', 'S5L', 'S5M', 'S5H', 'C1L', 'C1M', 'C1H', 'C2L', 'C2M', 'C2H', 'C3L', 'C3M', 'C3H', 'PC1', 'PC2L', 'PC2M', 'PC2H', 'RM1L', 'RM1M', 'RM2L', 'RM2M', 'RM2H', 'URML', 'URMM', 'MH']  # Get all the structure type columns
     # event_results[building_types_o3] = event_results[building_types_o3].multiply(event_results['Total_Num_Building'], axis=0)
 
     '''

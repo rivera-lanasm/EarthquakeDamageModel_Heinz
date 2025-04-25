@@ -240,13 +240,10 @@ def o3_get_building_structures():
 
     # get url from webpage
     state_links = fetch_state_links()
-    print(state_links["California"])
 
     # Iterate through the state names and download the corresponding ZIP files
     i = 1
     for state in state_links:
-        if state != "California":
-            continue
         if i <= 50:
             download_and_extract_zip(state, state_links)
             i += 1

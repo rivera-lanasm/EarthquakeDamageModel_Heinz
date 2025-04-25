@@ -15,7 +15,7 @@ from io import BytesIO
 from bs4 import BeautifulSoup
 
 
-def read_event_data(eventid = 'nc72282711'):
+def read_event_data(eventid):
     """
     Read event data from a GPKG file.
     """
@@ -123,7 +123,7 @@ def count_building_proportion(building_count, building_stock):
 # SAVE OUTPUT TO EVENT DIR
 
 # Function to save GeoDataFrame to GeoPackage (Overwriting mode)
-def save_to_geopackage(gdf, layer_name="tract_shakemap_pga", eventid = 'nc72282711'):
+def save_to_geopackage(gdf, eventid, layer_name):
     """
     Saves a GeoDataFrame to the GeoPackage, overwriting the existing layer.
 
@@ -145,33 +145,33 @@ def save_to_geopackage(gdf, layer_name="tract_shakemap_pga", eventid = 'nc722827
 def building_clip_analysis(eventid):
     # overall work flow
     # 1. Read the event data
-    print(f"1. Reading event data for event ID: {eventid}")
+    # print(f"1. Reading event data for event ID: {eventid}")
     eventdata = read_event_data(eventid)
     # print(eventdata)
 
     # 2. Read the building count data
-    print("2. Reading building count data...")
+    # print("2. Reading building count data...")
     building_count = read_building_count_by_tract()
     # print(building_count)
 
     # 3. Read the building stock data
-    print("3. Reading building stock data...")
+    # print("3. Reading building stock data...")
     building_stock = get_building_stock_data()
     # print(building_stock)
 
     # 4. Merge the building count and building stock data
-    print("4. Merging building count and building stock data...")
+    # print("4. Merging building count and building stock data...")
     df_output = count_building_proportion(building_count, building_stock)
 
     # 5. Merge the event data and the merged building count and building stock data
-    print("5. Merging event data with building data...")
+    # print("5. Merging event data with building data...")
     final_output = pd.merge(eventdata, df_output, left_on='GEOID', right_on='CENSUSCODE', how='left')
     final_output.ffill(inplace=True)
     final_output.drop(columns=['CENSUSCODE'], axis=1, inplace=True)
     
     # 6. Save the final output to the GeoPackage
-    print("6. Saving final output to GeoPackage...")
-    layer_name = "tract_shakemap_pga"
+    # print("6. Saving final output to GeoPackage...")
+    # layer_name = "tract_shakemap_pga"
     # print(final_output)
     # save_to_geopackage(final_output, layer_name, eventid)
     # print(final_output.columns)

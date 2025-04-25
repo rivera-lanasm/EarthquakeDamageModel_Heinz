@@ -243,20 +243,4 @@ def shakemap_into_census_geo(eventdir):
 
     return None
 
-if __name__ == "__main__":
-    """
-    show stats for 2014 napa valley 
-    """
-    parent_dir = os.path.dirname(os.getcwd())
-    event_dir = os.path.join(parent_dir, 'ShakeMaps', 'nc72282711')
-    
-    shakemap_into_census_geo(event_dir)
 
-    # Update with the actual path
-    GPKG_PATH = os.path.join(event_dir, "eqmodel_outputs.gpkg")
-
-    # # Read the layer you want to inspect
-    # tract_shakemap_gdf = gpd.read_file(GPKG_PATH, layer="tract_shakemap_mmi")
-
-    # # Print basic information
-    # print(tract_shakemap_gdf.info())

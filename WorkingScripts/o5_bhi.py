@@ -60,14 +60,13 @@ def process_bhi(df):
     # ==================================
     # step 0 - import population from census, join
         # source: https://data.census.gov/table/DECENNIALPL2020.P1?t=Populations+and+People&g=040XX00US06$1400000
-    pop_data = pd.read_csv("Data/CA_DECENNIALPL2020.csv")
+    pop_data = pd.read_csv("Data/USDECENNIALPL2020.csv")
     # print(pop_data.head())
     pop_data = pop_data.iloc[1:].reset_index(drop=True)[["GEO_ID", "NAME", "P1_001N"]]
     pop_data["GEO_ID"] = pop_data["GEO_ID"].str.replace("1400000US", "", regex=False)
 
     # ==================================
     # step 1 - read results from o4
-    # df = gpd.read_file("Data/o4_results.gpkg")
 
     # get % buildings in each category 
     df["perc_slight"] = df["Total_Num_Building_Slight"]/df["Total_Num_Building"]
@@ -109,14 +108,20 @@ def process_bhi(df):
     df["BHI_factor_low"] = (df["num_FU"]*df["perc_FU_NH_low"] + df["num_PU"]*df["perc_PU_NH_low"] + df["num_NU"])/df["Total_Num_Building"]
     df["BHI_factor_high"] = (df["num_FU"]*df["perc_FU_NH_high"] + df["num_PU"]*df["perc_PU_NH_high"] + df["num_NU"])/df["Total_Num_Building"]
 
-    # apply residential factor
-    # resi_df = pd.read_csv("/home/rivlanm/cmu/EarthquakeDamageModel_Heinz/Data/building_data_csv/CA_building_data.csv")
-
-    # (.5)*(.5) = .25
-    
+    # create/apply residential factor
+    resi_df = pd.read_csv("Data/building_data_csv/aggregated_building_data.csv")    
+    resi_df["CENSUSCODE"] = resi_df["CENSUSCODE"].astype(int)
+    df["GEOID"] = df["GEOID"].astype(int)
+    df = df.merge(resi_df, left_on = "GEOID", right_on="CENSUSCODE")
+    df["total_resi_count"] = df['RESIDENTIAL_MULTI FAMILY'] + \
+                             df['RESIDENTIAL_OTHER'] + \
+                             df['RESIDENTIAL_SINGLE FAMILY']
+    df["resi_prop"] = df["total_resi_count"] / df["TOTAL_BUILDING_COUNT"]
+    df["BHI_factor_low"] = df["BHI_factor_low"]*df["resi_prop"]
+    df["BHI_factor_high"] = df["BHI_factor_high"]*df["resi_prop"]
 
     # join census population data
-    final_col_set = ["GEOID", "max_intensity",
+    final_col_set = ["GEOID", "max_intensity", "resi_prop",
                      "Total_Num_Building",
                      "Total_Num_Building_Slight", "Total_Num_Building_Moderate", 
                      "Total_Num_Building_Extensive", "Total_Num_Building_Complete",
@@ -129,11 +134,11 @@ def process_bhi(df):
     df = df[final_col_set].sort_values(by=["max_intensity"], ascending=False).reset_index(drop=True)
 
     # merge pop data
+    pop_data = pop_data[["GEO_ID", "P1_001N"]]
+    pop_data["GEO_ID"] = pop_data["GEO_ID"].astype(int)
     df = df.merge(pop_data[["GEO_ID", "P1_001N"]], how="inner", left_on="GEOID", right_on="GEO_ID")
     df = df.drop(columns=["GEO_ID"])
     df = df.rename(columns={"P1_001N":"population"})
-
-    df["denominator"] = df["Total_Num_Building"]
 
     return df
 
