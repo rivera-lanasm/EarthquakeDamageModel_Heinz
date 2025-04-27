@@ -142,36 +142,3 @@ def process_bhi(df):
 
     return df
 
-# if __name__ == "__main__":
-
-#     df = process_bhi()
-
-
-#     df["population"] = df["population"].astype(int)
-#     df["shelter_seeking_low"] = df["BHI_factor_low"]*df["population"]
-#     df["shelter_seeking_high"] = df["BHI_factor_high"]*df["population"]
-#     cols = ["GEOID", "max_intensity", "population", "Total_Num_Building", "risk_level",
-#             "BHI_factor_low", #"BHI_factor_high",
-#             "shelter_seeking_low", #"shelter_seeking_high",
-#             "Total_Num_Building_Slight", "Total_Num_Building_Moderate", 
-#              "Total_Num_Building_Extensive", "Total_Num_Building_Complete"]
-
-#     df = df[cols]
-
-#     df["BHI_factor_low"] = df["BHI_factor_low"].apply(lambda x: round(x,4))
-#     df["shelter_seeking_low"] = df["shelter_seeking_low"].apply(lambda x: round(x,4))
-    
-#     # BHI (census) = BHI_factor * census tract population --> number of people in census tract with non-habitable housing
-#     df.to_csv("Data/bhi_output.csv", index=False)
-    
-    #pop_data = pd.read_csv("Data/CA_DECENNIALPL2020.csv")
-
-    # SVI --> [0,1] (higher is more vulnerable)
-
-
-    # 100, SVI = .5 --> 50 
-
-
-
-
-

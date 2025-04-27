@@ -19,7 +19,7 @@ def read_event_data(eventid):
     """
     Read event data from a GPKG file.
     """
-    event_dir = os.path.join(os.getcwd(), 'Data', eventid)
+    event_dir = os.path.join(os.getcwd(), 'Data', 'Shakemap', eventid)
 
     # Update with the actual path
     GPKG_PATH = os.path.join(event_dir, "eqmodel_outputs.gpkg")

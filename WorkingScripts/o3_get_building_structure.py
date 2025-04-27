@@ -68,8 +68,8 @@ def download_and_extract_zip(state_name, state_links):
     state_links -- Corresponding links for each state
     """
     url = get_link_by_state(state_name, state_links)
-    parent_dir = os.path.dirname(os.getcwd())
-    output_dir = os.path.join(parent_dir, 'Data', 'building_data_gdb')
+    # parent_dir = os.path.dirname(os.getcwd())
+    output_dir = os.path.join(os.getcwd(), 'Data', 'building_data_gdb')
 
     response = requests.get(url, stream=True)
     if response.status_code == 200:
@@ -238,6 +238,8 @@ def aggregate_building_data():
 def o3_get_building_structures():
     """Download and extract building data for all states from the given URL."""
 
+    # check if aggregated_building_data.csv exists, else continue
+
     # get url from webpage
     state_links = fetch_state_links()
 
@@ -282,6 +284,8 @@ def o3_get_building_structures():
 
     # concatenate all the csv files
     aggregate_building_data()
+
+    # delete state_building_data.csv 
 
     return None
 

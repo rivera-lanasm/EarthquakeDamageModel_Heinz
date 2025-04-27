@@ -42,31 +42,32 @@ def read_svi_data():
 
 #     return svi_data
 
-def map_range(val):
-    """
-    if you have relatively high svi...30% of people living in potentially non habitable will seek shelter potentially.
+def configure_svi_map(svi_factor_set):
+    def map_range(val):
+        """
+        if you have relatively high svi...30% of people living in potentially non habitable will seek shelter potentially.
 
-        questions:
-            1) under what SVI can we basically map the value to 0 --> .4 (above what value are you vulnerable?)
-            2) for socially vuln, what proportion might seek shelter
-    """
-    if 0 <= val < 0.2:
-        return 0 # 10%
-    elif 0.2 <= val < 0.4:
-        return 0 # 20%
-    elif 0.4 <= val < 0.8:
-        return .025
-    elif 0.8 <= val <= 1.0:
-        return .05
-    else:
-        return None 
+            questions:
+                1) under what SVI can we basically map the value to 0 --> .4 (above what value are you vulnerable?)
+                2) for socially vuln, what proportion might seek shelter
+        """
+        if 0 <= val < 0.5:
+            return svi_factor_set[0]
+        elif 0.5 <= val < 0.8:
+            return svi_factor_set[1]
+        elif 0.8 <= val <= 1.0:
+            return svi_factor_set[2]
+        else:
+            return None 
+    return map_range
 
-def process_svi():
+def process_svi(svi_factor_set):
     
     #event_data = read_event_data(eventid)
     svi_data = read_svi_data()
     svi_data = svi_data[['FIPS', 'RPL_THEMES']].rename(columns={'RPL_THEMES': "SVI_Value"})
     #final = process_svi(event_data, svi_data = svi)
+    map_range = configure_svi_map(svi_factor_set)
     svi_data["SVI_Value_Mapped"] = svi_data["SVI_Value"].apply(map_range)
 
     #TODO: potentially save this in folder directly - wait to hear back from team on desired final output

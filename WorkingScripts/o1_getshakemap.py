@@ -17,7 +17,7 @@ import io
 import datetime
 import geopandas as gpd 
 
-SHAKEMAP_DIR = "{}/Data".format(os.getcwd())
+SHAKEMAP_DIR = "{}/Data/Shakemap".format(os.getcwd())
 FEEDURL = "https://earthquake.usgs.gov/fdsnws/event/1/query.geojson?eventid={}"
 
 
@@ -39,7 +39,7 @@ def fetch_earthquake_data(feed_url):
         return response.json()  # Parse JSON and return as a dictionary
     except requests.exceptions.RequestException as e:
         print(f"Error fetching data from {feed_url}: {e}")
-        return None
+        raise ValueError
 
 def retrieve_event_data(jdict):
     """
@@ -85,9 +85,9 @@ def download_and_extract_shakemap(event):
     event_folder = os.path.join(SHAKEMAP_DIR, eventid)
 
     # Check if the event folder already exists (we do NOT overwrite)
-    # if os.path.exists(event_folder):
-    #     print(f"{eventid}: ShakeMap already downloaded.")
-    #     return event_folder
+    if os.path.exists(event_folder):
+        print(f"{eventid}: ShakeMap already downloaded.")
+        return event_folder
 
     # Ensure base directory exists
     os.makedirs(event_folder, exist_ok=True)

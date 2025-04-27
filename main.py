@@ -35,12 +35,7 @@ def main(**config):
     jdict = fetch_earthquake_data(feed_url=feed_url)
     event = retrieve_event_data(jdict)
     download_and_extract_shakemap(event)
-    # extract earthquake information
-    # place = jdict["properties"]["place"]
-    # time = jdict["properties"]["time"]
-    # mmi = jdict["properties"]["mmi"]
 
-    raise ValueError
     # ================================================
     # o2 - Download US Census Tract Shapemap (Optional)
     # ================================================    
@@ -51,14 +46,14 @@ def main(**config):
     # o2 - Overlay US Census Tract Data onto ShakeMap
     # ================================================
     # clip census and shakemaps, min pga per census tract
-    event_dir = os.path.join(os.getcwd(), 'Data', EVENT_ID)
+    event_dir = os.path.join(os.getcwd(), 'Data', 'Shakemap', EVENT_ID)
     shakemap_into_census_geo(event_dir)
 
     # ================================================
     # o3 - Download Building Centroid Data (Optional)
     # ================================================
     # download and extract the building data
-    o3_get_building_structures()
+#     o3_get_building_structures()
 
     # ================================================
     # o3 - Building Centroids
@@ -91,7 +86,7 @@ def main(**config):
     # o6 - Download SVI data 
     # ================================================
     # apply SVI 
-    svi = process_svi()
+    svi = process_svi(config["SVI_THRESHOLD"])
     svi["FIPS"] = svi["FIPS"].astype(int)
     
     # ================================================
@@ -102,6 +97,9 @@ def main(**config):
     df["shelter_seeking_high"] = df["shelter_seeking_high"]*df["SVI_Value_Mapped"]
     df = df.drop(columns=["FIPS"])
     df.to_csv("Data/final_output.csv", index=False)
+
+    print(df["shelter_seeking_low"].sum())
+    print(df["shelter_seeking_high"].sum())
 
 
 
@@ -115,11 +113,12 @@ if __name__ == "__main__":
     """
 
     # USER INPUT
-    config = {"event_id": "nc73821036"}
+#     config = {"event_id": "nc73821036"}
 
     config = {
-    "event_id": "nc73821036",
-    "intensity_metric": "min", # TODO maps to "max_intensity", "min_intensity", "mean_intensity" in o4
+    "event_id": "nc72282711",
+    # TODO maps to "max_intensity", "min_intensity", "mean_intensity" in o4
+    "intensity_metric": "min",
     "BLDNG_USABILITY": {
             "Slight":{"FU":1.00,"PU":0.00,"NU":0.00},
             "Moderate":{"FU":0.87,"PU":0.13,"NU":0.00},
@@ -142,6 +141,14 @@ if __name__ == "__main__":
     main(**config)
 
 
-
+    #TODO 1) code cleanup
+        # make sure no unecessary data remains after running code
+        # code to check for data before downloading 
+        # comment functions 
+        # add paramters vs hardcoded values
+    #TODO 1) zip file
+        # document steps for unzipping files in google drive
+    #TODO 1) colab integration
+        
 
 
