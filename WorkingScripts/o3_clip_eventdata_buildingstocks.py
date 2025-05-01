@@ -1,59 +1,66 @@
-#!/usr/bin/env python
-# coding: utf-8
+"""
+Earthquake + Building Stock Merge Module
 
-import geopandas as gpd
-import pandas as pd
+This module:
+- Reads ShakeMap-based earthquake intensity data by tract
+- Loads census-based building count and structural type data
+- Merges these datasets to estimate building counts by structural type per tract
+- Outputs merged results for downstream damage estimation
+
+Main Functions:
+- read_event_data
+- read_building_count_by_tract
+- get_building_stock_data
+- count_building_proportion
+- save_to_geopackage
+- building_clip_analysis
+"""
+
+import os
 import numpy as np
-import fiona
-import pyogrio
-import os
-
-import requests
-import zipfile
-import os
-from io import BytesIO
-from bs4 import BeautifulSoup
+import pandas as pd
+import geopandas as gpd
 
 
 def read_event_data(eventid):
     """
-    Read event data from a GPKG file.
+    Read event PGA data from GeoPackage for a given event ID.
+
+    Parameters
+    ----------
+    eventid : str
+        USGS ShakeMap event ID.
+
+    Returns
+    -------
+    GeoDataFrame
+        ShakeMap tract-level PGA data.
     """
     event_dir = os.path.join(os.getcwd(), 'Data', 'Shakemap', eventid)
+    gpkg_path = os.path.join(event_dir, "eqmodel_outputs.gpkg")
 
-    # Update with the actual path
-    GPKG_PATH = os.path.join(event_dir, "eqmodel_outputs.gpkg")
-
-    # Read the layer you want to inspect
-    # tract_shakemap_mmi, tract_shakemap_pga, tract_shakemap_pgv --> same idea
-    gdf = gpd.read_file(GPKG_PATH, layer="tract_shakemap_pga")
-    # make sure that only row that is not nan is the one we want
-    columns = gdf.columns
-    gdf = gdf[[columns[0], columns[1], columns[2], columns[3], columns[-1]]]
-    # return gdf
-    
-    return gdf.loc[gdf[columns[1]].notna()]
+    gdf = gpd.read_file(gpkg_path, layer="tract_shakemap_pga")
+    cols = gdf.columns
+    gdf = gdf[[cols[0], cols[1], cols[2], cols[3], cols[-1]]]
+    return gdf.loc[gdf[cols[1]].notna()]
 
 
-# Check if a csv file for a state is exists
-    # if exists, read it
-    # if not, check if the gdb file exists
-    # if exists, read it
 def read_building_count_by_tract():
     """
-    Read building count data from a CSV file.
+    Load aggregated building count data per tract.
+
+    Returns
+    -------
+    DataFrame
+        Building counts with CENSUSCODE as string.
     """
-    parent_dir = os.path.dirname(os.getcwd())
-    # Update with the actual path
-    CSV_PATH = os.path.join(os.getcwd(), 'Data', 'building_data_csv', "aggregated_building_data.csv")
-    # check if the file exists
-    if not os.path.exists(CSV_PATH):
-        print(f"CSV file for Building count data is not available.")
-        raise ValueError
-    else:
-        gdf = pd.read_csv(CSV_PATH, dtype={'CENSUSCODE': str})
-        gdf['CENSUSCODE'] = np.where(gdf['CENSUSCODE'].str.len() == 11, gdf['CENSUSCODE'], "0"+gdf['CENSUSCODE'])
-        return gdf
+    csv_path = os.path.join(os.getcwd(), 'Data', 'building_data_csv', "aggregated_building_data.csv")
+    if not os.path.exists(csv_path):
+        raise ValueError("CSV file for building count data is not available.")
+
+    df = pd.read_csv(csv_path, dtype={'CENSUSCODE': str})
+    df['CENSUSCODE'] = np.where(df['CENSUSCODE'].str.len() == 11, df['CENSUSCODE'], "0" + df['CENSUSCODE'])
+    return df
 
 
 # # INTERSECT WITH BUILDING STOCKS
@@ -179,16 +186,4 @@ def building_clip_analysis(eventid):
     
     return final_output
 
-
-if __name__ == "__main__":
-    # Example usage
-    # Read building data and save to GeoPackage
-    # building_count = read_building_count_by_tract()
-    # building_stock = get_building_stock_data()
-    # df_output = count_building_proportion(building_count, building_stock)
-    # save_to_geopackage(df_output, layer_name="building_data")
-    
-    # Perform building clip analysis for a specific event ID
-    eventid = 'nc72282711'
-    building_clip_analysis(eventid)
 

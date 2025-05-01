@@ -1,17 +1,40 @@
-import requests
-from bs4 import BeautifulSoup
-import os
-import zipfile
-import glob
-import geopandas as gpd
-import pandas as pd
+"""
+Download and merge 2024 TIGER/Line Census Tract shapefiles into a single GeoPackage.
 
-# URL to the Census TIGER/TRACT 2019 directory
+This script:
+- Scrapes ZIP file links from the 2024 Census Tract TIGER/Line directory
+- Downloads and extracts all shapefiles
+- Merges them into a nationwide GeoPackage for spatial analysis
+- Cleans up intermediate ZIPs and extracted files
+"""
+
+import os
+import glob
+import zipfile
+import requests
+import pandas as pd
+import geopandas as gpd
+from bs4 import BeautifulSoup
+
+# Base URL to the 2024 Census Tract TIGER/Line shapefiles
 BASE_URL = "https://www2.census.gov/geo/tiger/TIGER2024/TRACT/"
 
 def download_census():
+    """
+    Download, extract, and merge 2024 Census Tract shapefiles into a single GeoPackage.
 
-    # Local directories
+    If the output GeoPackage already exists, the function does nothing.
+    Otherwise, it:
+    - Scrapes ZIP links from the Census TIGER/Line site
+    - Downloads and extracts the shapefiles
+    - Merges them into one GeoPackage layer ("tracts")
+    - Deletes all intermediate ZIPs and shapefiles
+
+    Returns
+    -------
+    None
+    """
+    # Define local directories
     download_folder = os.path.join(os.getcwd(), "Data", "census_shp")
     extracted_folder = os.path.join(os.getcwd(), "Data", "extracted_census_shp")
     merged_shapefile_folder = os.path.join(os.getcwd(), "Data", "merged_shapefile")
@@ -22,43 +45,34 @@ def download_census():
     os.makedirs(extracted_folder, exist_ok=True)
     os.makedirs(merged_shapefile_folder, exist_ok=True)
 
-    # check if gpkg file is found
     if not os.path.isfile(output_gpkg):
-        print("no Nationwide_Tracts gpkg file found")
+        print(f"No existing GeoPackage found at {output_gpkg}. Beginning download...")
 
-        # Fetch the webpage content
-        print("attempting to link to {}".format(BASE_URL))
+        # Step 1: Scrape ZIP file links
+        print(f"Connecting to {BASE_URL}...")
         response = requests.get(BASE_URL)
         if response.status_code != 200:
-            print("Failed to access {} --> response code {}".format(BASE_URL, response.status_code))
-            raise ValueError
-        else:
-            print("parsing...")
-        # Parse the HTML content using BeautifulSoup
+            raise ValueError(f"Failed to access {BASE_URL} (HTTP {response.status_code})")
+
         soup = BeautifulSoup(response.text, "html.parser")
-        # Find all links ending with .zip
         zip_links = [a['href'] for a in soup.find_all('a', href=True) if a['href'].endswith('.zip')]
         print(f"Found {len(zip_links)} ZIP files. Starting download...")
 
-        # 1) Download each ZIP file
-        print("Download Census Data to {}".format(download_folder))
-        for i, zip_file in enumerate(zip_links):
+        # Step 2: Download ZIP files
+        for zip_file in zip_links:
             file_url = BASE_URL + zip_file
             local_path = os.path.join(download_folder, zip_file)
-
             print(f"Downloading {zip_file}...")
-            file_response = requests.get(file_url, stream=True)
 
+            file_response = requests.get(file_url, stream=True)
             if file_response.status_code == 200:
                 with open(local_path, 'wb') as f:
                     for chunk in file_response.iter_content(chunk_size=1024):
-                        if chunk:
-                            f.write(chunk)
+                        f.write(chunk)
             else:
-                print("Failed to download: {}, code {}".format(file_url, file_response.status_code))
-                raise ValueError
+                raise ValueError(f"Failed to download {zip_file} (HTTP {file_response.status_code})")
 
-        # 2) Extract all zip files
+        # Step 3: Extract ZIP files
         print("Extracting ZIP files...")
         for zip_file in os.listdir(download_folder):
             if zip_file.endswith(".zip"):
@@ -66,40 +80,32 @@ def download_census():
                     zip_ref.extractall(extracted_folder)
                 print(f"Extracted: {zip_file}")
 
-        # 3) Merge all shapefiles into a GeoPackage
-        print("Merging CENSUS shapefiles...")
-
-        # Recursively find all shapefiles
+        # Step 4: Merge all shapefiles
+        print("Merging shapefiles...")
         shapefiles = glob.glob(os.path.join(extracted_folder, "**", "*.shp"), recursive=True)
-
         if not shapefiles:
-            raise ValueError("No shapefiles found for merging.")
+            raise ValueError("No shapefiles found to merge.")
 
-        # Read all shapefiles into GeoDataFrames and concatenate them
         gdf_list = []
         for shp in shapefiles:
             print(f"Reading {shp}...")
             gdf = gpd.read_file(shp)
             gdf_list.append(gdf)
 
-        # Merge all GeoDataFrames
         merged_gdf = gpd.GeoDataFrame(pd.concat(gdf_list, ignore_index=True), crs=gdf_list[0].crs)
-
-        # Save to GeoPackage (overwrite if it exists)
         merged_gdf.to_file(output_gpkg, layer="tracts", driver="GPKG")
+        print(f"Saved merged Census Tracts to: {output_gpkg}")
 
-        print(f"Nationwide Census Tracts saved to: {output_gpkg}")
     else:
-        print(f"Nationwide Census Tracts already found: {output_gpkg}")
+        print(f"GeoPackage already exists at: {output_gpkg}")
 
-    # delete zip files (intermediate files) 
-    zip_files = glob.glob(os.path.join(download_folder, "*.zip"))
-    for file in zip_files:
+    # Step 5: Cleanup intermediate files
+    print("Cleaning up intermediate files...")
+    for file in glob.glob(os.path.join(download_folder, "*.zip")):
         os.remove(file)
-    # delete extracted shape files
-    files = glob.glob(os.path.join(extracted_folder, "*"))
-    for file in files:
+    for file in glob.glob(os.path.join(extracted_folder, "*")):
         if os.path.isfile(file):
             os.remove(file)
 
+    print("Census shapefile download and merge complete.")
     return None

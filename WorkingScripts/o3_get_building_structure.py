@@ -1,249 +1,401 @@
-#!/usr/bin/env python
-# coding: utf-8
 
-# # LIBARY
+"""
+Building Footprint Data Aggregation Module
 
+This module automates the process of downloading, extracting, and aggregating
+state-level building footprint data from the U.S. Federal GeoPlatform 
+(USA_Structures). It supports:
 
-import geopandas as gpd
+- Scraping state-level GDB download links
+- Downloading and extracting ZIP archives
+- Reading GDB files and selecting relevant columns
+- Remapping occupancy classifications
+- Aggregating and pivoting building counts by census tract
+- Producing a unified CSV of building data across all states
+"""
+
+import os
+import time
+import zipfile
+import requests
+import glob
 import pandas as pd
 import numpy as np
-#import fiona
-import pyogrio
-import requests
-import zipfile
-import os
-from io import BytesIO
+import geopandas as gpd
 from bs4 import BeautifulSoup
 
 
-# check if directory exist if not make it, return path
 def make_data_path():
-    """Create directories for data storage if they do not exist."""
-    cwd = os.getcwd()
-    parent = os.path.dirname(cwd)
-    data_path = os.path.join(parent, 'Data')
-    if not os.path.exists(data_path):
-        os.makedirs(data_path)
-    
-    building_data_csv = os.path.join(data_path, 'building_data_csv')
-    building_data_gdb = os.path.join(data_path, 'building_data_gdb')
-    building_stock_data = os.path.join(data_path, 'building_stock_data')
-    if not os.path.exists(building_data_csv):
-        os.makedirs(building_data_csv)
-    if not os.path.exists(building_data_gdb):
-        os.makedirs(building_data_gdb)
-    if not os.path.exists(building_stock_data):
-        os.makedirs(building_stock_data)
+    """
+    Create and return paths to data subdirectories for building data.
+
+    This function ensures that the following folders exist under the
+    parent directory of the current working directory:
+    - Data/building_data_csv: for saving per-state aggregated CSVs
+    - Data/building_data_gdb: for extracted raw GDB files
+    - Data/building_stock_data: optional output directory
+
+    Returns
+    -------
+    tuple of str
+        Paths to (building_data_csv, building_data_gdb, building_stock_data)
+    """
+    parent = os.path.dirname(os.getcwd())
+    data_path = os.path.join(parent, "Data")
+
+    # Create base data directory and subdirectories if needed
+    building_data_csv = os.path.join(data_path, "building_data_csv")
+    building_data_gdb = os.path.join(data_path, "building_data_gdb")
+    building_stock_data = os.path.join(data_path, "building_stock_data")
+
+    for path in [building_data_csv, building_data_gdb, building_stock_data]:
+        os.makedirs(path, exist_ok=True)
 
     return building_data_csv, building_data_gdb, building_stock_data
 
 
-# # DOWNLOAD BUILDING DATA
-
-# This notebook is to download building data, extract it, then 
-# aggregate the data to count the number of building for each census tract.
 def fetch_state_links():
-    """Fetches state names and their corresponding links from the webpage."""
-   
-    # URL of the webpage to scrape
+    """
+    Scrape the USA_Structures GeoPlatform site for state-level download links.
+
+    This function searches for all downloadable ZIP files containing building
+    structure data, based on the presence of 'Deliverable' in the href.
+
+    Returns
+    -------
+    dict
+        A dictionary mapping state names (str) to their corresponding ZIP URLs (str).
+
+    Raises
+    ------
+    ValueError
+        If the request to the webpage fails or no valid links are found.
+    """
     url = "https://disasters.geoplatform.gov/USA_Structures/"
     response = requests.get(url)
-    if response.status_code == 200:
-        soup = BeautifulSoup(response.text, "html.parser")
-        links = soup.find_all("a", href=True)
-        return {link.text.strip(): link["href"] for link in links if "Deliverable" in link["href"]}
-    else:
-        print("Failed to fetch the webpage. Status code:", response.status_code)
-        return {}
 
-def get_link_by_state(state_name, state_links):
-    """Returns the link for a given state name."""
-    return state_links.get(state_name, "State not found")   
+    if response.status_code != 200:
+        print(f"Failed to fetch webpage. Status code: {response.status_code}")
+        raise ValueError("Could not access USA_Structures page.")
+
+    soup = BeautifulSoup(response.text, "html.parser")
+    links = soup.find_all("a", href=True)
+
+    # Filter for links containing 'Deliverable' (GDB ZIP files)
+    deliverable_links = {
+        link.text.strip(): link["href"]
+        for link in links
+        if "Deliverable" in link["href"]
+    }
+
+    if not deliverable_links:
+        # empty dictionary
+        raise ValueError("No Deliverable ZIP links found on page.")
+
+    return deliverable_links
 
 
 def download_and_extract_zip(state_name, state_links):
-    """Downloads and extracts a ZIP file from the given URL.
-    Keyword arguments:
-    state_name -- Name of the state
-    state_links -- Corresponding links for each state
     """
-    url = get_link_by_state(state_name, state_links)
-    # parent_dir = os.path.dirname(os.getcwd())
-    output_dir = os.path.join(os.getcwd(), 'Data', 'building_data_gdb')
+    Download and extract a ZIP archive of building data for a given state.
 
+    Parameters
+    ----------
+    state_name : str
+        Name of the state (must match key in `state_links`).
+    state_links : dict
+        Dictionary mapping state names to ZIP URLs (from `fetch_state_links()`).
+
+    Raises
+    ------
+    ValueError
+        If the download fails or the state name is not in the links.
+    """
+    if state_name not in state_links:
+        raise ValueError(f"No download link found for state: {state_name}")
+
+    url = state_links[state_name]
+    output_dir = os.path.join(os.getcwd(), "Data", "building_data_gdb")
+    os.makedirs(output_dir, exist_ok=True)
+
+    zip_path = os.path.join(output_dir, f"{state_name}_Structures.zip")
+
+    print(f"Downloading {state_name} ZIP from {url}...")
     response = requests.get(url, stream=True)
+
     if response.status_code == 200:
-        os.makedirs(output_dir, exist_ok=True)
-        zip_path = os.path.join(output_dir, f"{state_name}_Structures.zip")
-        
         with open(zip_path, "wb") as f:
             for chunk in response.iter_content(chunk_size=8192):
                 f.write(chunk)
-        
-        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+
+        with zipfile.ZipFile(zip_path, "r") as zip_ref:
             zip_ref.extractall(output_dir)
-        
+        # rmeove zip file once complete
         os.remove(zip_path)
-        print(f"Downloaded, extracted, and deleted ZIP file for {state_name} to {output_dir}")
+        print(f"Extracted and cleaned up ZIP for {state_name}")
     else:
-        print("Failed to download the ZIP file.")
+        raise ValueError(f"Failed to download ZIP for {state_name}. HTTP {response.status_code}")
 
 
 def gdb_path_by_state(stateid):
-    """Returns the path to the GDB file for a given state ID."""
-    cwd = os.getcwd()
+    """
+    Construct the full path to the GDB file for a given state ID.
 
-    # get parent directory
-    parent_dir = os.path.dirname(cwd)
-    # get the building data directory
-    building_data_directory = os.path.join(parent_dir, 'Data', 'building_data_gdb')
-    # find all folder in the building data directory
-    folders = [f for f in os.listdir(building_data_directory) if os.path.isdir(os.path.join(building_data_directory, f))]
-    # get the folder that ends with stateid
-    stateid_dir= [f for f in folders if f.endswith(f'{stateid}')][0]
+    Assumes that the extracted building data is stored under:
+    Data/building_data_gdb/[folder_ending_with_stateid]/
 
-    return os.path.join(building_data_directory, stateid_dir, f'{stateid}_Structures.gdb')
+    Parameters
+    ----------
+    stateid : str
+        Two-letter state abbreviation (e.g., 'CA', 'TX').
 
-def get_building_data_csv(stateid):
-    """Returns the path to the CSV file for a given state ID."""
-    building_data_directory = os.path.join(os.path.dirname(os.getcwd()), 'Data', 'building_data_csv')
+    Returns
+    -------
+    str
+        Full file path to the .gdb file for the given state.
 
-    # get the csv file
-    return os.path.join(building_data_directory, f'{stateid}_building_data.csv')
+    Raises
+    ------
+    ValueError
+        If no folder matching the state ID is found.
+    """
+    parent_dir = os.path.dirname(os.getcwd())
+    building_data_dir = os.path.join(parent_dir, "Data", "building_data_gdb")
 
+    # Find folder that ends with the state ID
+    folders = [
+        f for f in os.listdir(building_data_dir)
+        if os.path.isdir(os.path.join(building_data_dir, f))
+    ]
+    matches = [f for f in folders if f.endswith(stateid)]
 
+    if not matches:
+        raise ValueError(f"No folder ending with '{stateid}' found in {building_data_dir}")
 
-# read only the specified columns
-def read_cols(path):
-    """Read the GDB file and return a GeoDataFrame with specified columns."""
-    
-    cols = ['BUILD_ID', 'OCC_CLS', 'PRIM_OCC', 'CENSUSCODE', 'LONGITUDE', 'LATITUDE']
-    return gpd.read_file(path, columns=cols)
-    
-# only read specific columns, it can reduce the memory usage and time for each state    
+    return os.path.join(building_data_dir, matches[0], f"{stateid}_Structures.gdb")
 
 
 def read_building_data(stateid):
-    """Check if the aggregated csv file exists for the given state ID.
-    If it does, return the file type and None. Do nothing.
-    If it does not, read the GDB file for the state and return the file type and the GeoDataFrame.
-    Kwargs:
-    stateid -- State ID
+    """
+    Load building data for a given state.
+
+    If an aggregated CSV file already exists for the state, returns its type and None.
+    Otherwise, reads the raw GDB file and returns a GeoDataFrame with selected columns.
+
+    Parameters
+    ----------
+    stateid : str
+        Two-letter state abbreviation (e.g., 'CA', 'TX').
+
+    Returns
+    -------
+    tuple
+        ('csv', None) if preprocessed CSV exists,
+        ('gdb', GeoDataFrame) if GDB needs to be read and processed.
     """
     
     # gdb file path
     building_data_directory = gdb_path_by_state(stateid)
 
     # get the csv file
-    csv_path = get_building_data_csv(stateid)
+    csv_dir = os.path.join("Data", "building_data_csv")
+    csv_path = os.path.join(csv_dir, f"{stateid}_building_data.csv")
     if os.path.exists(csv_path):
         print(f"Aggregated csv file found for {stateid}")
         return 'csv', None
-
     else:
         print(f"Reading {building_data_directory}")
-        return 'gdb', read_cols(building_data_directory)
+        # Read the GDB file and return a GeoDataFrame with specified columns
+        cols = ['BUILD_ID', 'OCC_CLS', 'PRIM_OCC', 'CENSUSCODE', 'LONGITUDE', 'LATITUDE']
+        gdb_df = gpd.read_file(building_data_directory, columns=cols)
+        return 'gdb', gdb_df
 
 
-# # AGGREGATE BUILDING DATA
-
-
-# function to remap OCC_CLS and PRIM_OCC
 def remap_occupancy_classes(gdf):
-    """Remap the occupancy classes and primary occupancy from GDB files.
-    Kwargs:
-    gdf -- GeoDataFrame read from the GDB file"""
+    """
+    Remap occupancy class and primary occupancy values in building data.
 
-    # Define the mapping dictionaries
-    building_data = gdf[['BUILD_ID', 'OCC_CLS', 'PRIM_OCC', 'CENSUSCODE', 'LONGITUDE', 'LATITUDE']]
-    # mapping the occupancy class
-    mapping = {
-        'Agriculture':'OTHER', 'Education':'OTHER', 'Residential':'RESIDENTIAL', 'Unclassified':'OTHER',
-        'Commercial':'OTHER', 'Government':'OTHER', 'Industrial':'OTHER', 'Utility and Misc':'OTHER',
-        'Assembly':'OTHER'
+    Parameters
+    ----------
+    gdf : GeoDataFrame
+        Raw building data read from a state's GDB file, containing at least:
+        'BUILD_ID', 'OCC_CLS', 'PRIM_OCC', 'CENSUSCODE', 'LONGITUDE', 'LATITUDE'.
+
+    Returns
+    -------
+    GeoDataFrame
+        A simplified and remapped building dataset with standardized occupancy labels.
+    """
+    # Select relevant columns
+    building_data = gdf[["BUILD_ID", "OCC_CLS", "PRIM_OCC", "CENSUSCODE", "LONGITUDE", "LATITUDE"]].copy()
+
+    # Remap OCC_CLS (if not Residential, other)
+    building_data["OCC_CLS"] = building_data["OCC_CLS"].apply(
+    lambda x: "RESIDENTIAL" if x == "Residential" else "OTHER"
+    )
+
+    # Remap PRIM_OCC
+    prim_occ_mapping = {
+        val: "OTHER"
+        for val in building_data["PRIM_OCC"].unique()
+        if val not in ["Single Family Dwelling", "Multi - Family Dwelling"]
     }
-    building_data['OCC_CLS'] = building_data['OCC_CLS'].map(mapping)
+    prim_occ_mapping.update({
+        "Single Family Dwelling": "SINGLE FAMILY",
+        "Multi - Family Dwelling": "MULTI FAMILY"
+    })
+    building_data["PRIM_OCC"] = building_data["PRIM_OCC"].map(prim_occ_mapping)
 
-    # mapping the primary occupancy
-    mapping = {i:'OTHER' for i in building_data['PRIM_OCC'].unique() if i not in ['Single Family Dwelling', 'Multi - Family Dwelling']}
-    residential = {'Single Family Dwelling':'SINGLE FAMILY', 'Multi - Family Dwelling':'MULTI FAMILY'}
-    mapping.update(residential)
-    building_data['PRIM_OCC'] = building_data['PRIM_OCC'].map(mapping)
     return building_data
 
 
-# function to aggregate the building counts by GEODI, OCC_CLS, PRIM_OCC
 def aggregate_building_counts(gdf):
-    building_data = remap_occupancy_classes(gdf)
-    # group by GEODI, OCC_CLS, PRIM_OCC and sum the counts
-    count_building_data = building_data.groupby(['CENSUSCODE', 'OCC_CLS', 'PRIM_OCC']).agg({'BUILD_ID':'count'}).reset_index()
-    # rename the columns
-    count_building_data = count_building_data.rename(columns={'BUILD_ID':'COUNT'})
-    return count_building_data
+    """
+    Aggregate building counts by census tract and occupancy categories.
 
+    Parameters
+    ----------
+    gdf : GeoDataFrame
+        Raw building data from a state's GDB file.
+
+    Returns
+    -------
+    DataFrame
+        Aggregated building counts by CENSUSCODE, OCC_CLS, and PRIM_OCC,
+        with one row per unique combination and a 'COUNT' column.
+    """
+    # Standardize occupancy classes and keep relevant columns
+    building_data = remap_occupancy_classes(gdf)
+
+    # Group by tract ID, occupancy class, and primary occupancy
+    grouped = (
+        building_data
+        .groupby(["CENSUSCODE", "OCC_CLS", "PRIM_OCC"])
+        .agg(COUNT=("BUILD_ID", "count"))
+        .reset_index()
+    )
+    return grouped
 
 
 def pivot_building_data(count_building_data):
-    """Pivot the building data to get the count of buildings by OCC_CLS and PRIM_OCC.
-    Kwargs:
-    count_building_data -- DataFrame with building counts aggregated by CENSUS CODE, OCC_CLS and PRIM_OCC
     """
+    Pivot aggregated building counts to wide format by occupancy type.
 
+    Parameters
+    ----------
+    count_building_data : DataFrame
+        Aggregated building counts with columns: CENSUSCODE, OCC_CLS, PRIM_OCC, COUNT
+
+    Returns
+    -------
+    DataFrame
+        Pivoted DataFrame with separate columns for each OCC_CLS / PRIM_OCC pair,
+        as well as total residential and total building counts.
+    """
     df = count_building_data.copy()
 
-    # Create a pivot table
-    df_pivot = df.pivot_table(index="CENSUSCODE", columns=["OCC_CLS", "PRIM_OCC"], values="COUNT", aggfunc="sum", fill_value=0)
-
-    # Flatten MultiIndex columns
-    df_pivot.columns = [f"{col[0]}_{col[1]}" for col in df_pivot.columns]
+    # Pivot to wide format: one row per CENSUSCODE, one column per (OCC_CLS, PRIM_OCC)
+    df_pivot = df.pivot_table(
+        index="CENSUSCODE",
+        columns=["OCC_CLS", "PRIM_OCC"],
+        values="COUNT",
+        aggfunc="sum",
+        fill_value=0
+    )
+    # Flatten MultiIndex column names
+    df_pivot.columns = [f"{occ_cls}_{prim_occ}" for occ_cls, prim_occ in df_pivot.columns]
     df_pivot = df_pivot.reset_index()
-    df_pivot['TOTAL_RESIDENTIAL'] = df_pivot['RESIDENTIAL_MULTI FAMILY'] + df_pivot['RESIDENTIAL_SINGLE FAMILY'] + df_pivot['RESIDENTIAL_OTHER']
-    df_pivot['TOTAL_BUILDING'] = df_pivot['TOTAL_RESIDENTIAL'] + df_pivot['OTHER_OTHER']
+    # Safely sum expected categories (default to 0 if missing)
+    residential_cols = [
+        "RESIDENTIAL_SINGLE FAMILY",
+        "RESIDENTIAL_MULTI FAMILY",
+        "RESIDENTIAL_OTHER"]
+    other_col = "OTHER_OTHER"
+
+    for col in residential_cols + [other_col]:
+        if col not in df_pivot.columns:
+            df_pivot[col] = 0
+
+    df_pivot["TOTAL_RESIDENTIAL"] = (
+        df_pivot["RESIDENTIAL_SINGLE FAMILY"] +
+        df_pivot["RESIDENTIAL_MULTI FAMILY"] +
+        df_pivot["RESIDENTIAL_OTHER"]
+    )
+
+    df_pivot["TOTAL_BUILDING"] = df_pivot["TOTAL_RESIDENTIAL"] + df_pivot["OTHER_OTHER"]
+
     return df_pivot
 
 
 def aggregate_building_data():
-    """Aggregate the building data for all states and save to a csv file."""
-    # list all files 
-    path = os.path.join(os.path.dirname(os.getcwd()), 'Data', 'building_data_csv')
-    files = os.listdir(path)
-    # filter the files that ends with .csv
-    files = [f for f in files if f.endswith('.csv')]
+    """
+    Aggregate building data across all states and save to a single CSV file.
 
-    # read all the csv files and concatenate them
+    This function reads all per-state building data CSVs in the 
+    'Data/building_data_csv' directory, adds state identifiers, 
+    calculates total building counts per row, and outputs a combined 
+    'aggregated_building_data.csv'.
+
+    Returns
+    -------
+    None
+        Writes output to disk.
+    """
+    csv_dir = os.path.join(os.path.dirname(os.getcwd()), "Data", "building_data_csv")
+    csv_files = [f for f in os.listdir(csv_dir) if f.endswith(".csv")]
+
     dfs = []
-    for file in files:
-        df = pd.read_csv(os.path.join(path, file))
-        # get the state id from the file name
-        stateid = file.split('_')[0]
-        df['STATE_ID'] = stateid
+    for file in csv_files:
+        df = pd.read_csv(os.path.join(csv_dir, file))
+        stateid = file.split("_")[0]
+        df["STATE_ID"] = stateid
         dfs.append(df)
-    # concatenate the dataframes
+
+    if not dfs:
+        print("No building data CSVs found to aggregate.")
+        raise ValueError
+
     building_data = pd.concat(dfs, ignore_index=True)
 
-    # drop OTHER_SINGLE FAMILY
-    building_data = building_data.drop(columns=['OTHER_SINGLE FAMILY'], errors='ignore')
+    # Drop known irrelevant column if it exists
+    building_data = building_data.drop(columns=["OTHER_SINGLE FAMILY"], errors="ignore")
 
-    # sum all building
-    building_data['TOTAL_BUILDING_COUNT'] = building_data['OTHER_OTHER'] + \
-                                            building_data['RESIDENTIAL_MULTI FAMILY'] + \
-                                            building_data['RESIDENTIAL_OTHER'] + \
-                                            building_data['RESIDENTIAL_SINGLE FAMILY']
-    
-    # save the building data to a csv file
-    building_data.to_csv(os.path.join(path, 'aggregated_building_data.csv'), index=False)
+    # Ensure required columns exist
+    for col in [
+        "OTHER_OTHER", 
+        "RESIDENTIAL_MULTI FAMILY", 
+        "RESIDENTIAL_OTHER", 
+        "RESIDENTIAL_SINGLE FAMILY"
+    ]:
+        if col not in building_data.columns:
+            building_data[col] = 0
 
+    # Compute total building count
+    building_data["TOTAL_BUILDING_COUNT"] = (
+        building_data["OTHER_OTHER"] +
+        building_data["RESIDENTIAL_MULTI FAMILY"] +
+        building_data["RESIDENTIAL_OTHER"] +
+        building_data["RESIDENTIAL_SINGLE FAMILY"]
+    )
+
+    # Save to file
+    output_path = os.path.join(csv_dir, "aggregated_building_data.csv")
+    building_data.to_csv(output_path, index=False)
+    print(f"Saved aggregated building data to {output_path}")
     return None
 
+
 def o3_get_building_structures():
-    """Download and extract building data for all states from the given URL."""
+    """
+    Download, extract, and process building data for all U.S. states.
 
-    # check if aggregated_building_data.csv exists, else continue
-
-    # get url from webpage
+    Uses USA_Structures to fetch links, downloads ZIPs, processes GDBs,
+    aggregates building counts per census tract, and saves state-level CSVs.
+    """
+    print("Fetching state download links...")
     state_links = fetch_state_links()
 
-    # Iterate through the state names and download the corresponding ZIP files
+    print("Downloading ZIPs for 50 states...")
     i = 1
     for state in state_links:
         if i <= 50:
@@ -251,10 +403,11 @@ def o3_get_building_structures():
             i += 1
         else:
             break
-    
-    # states data
+
+    # Hardcoded list of 50 U.S. states (with abbreviations)
     states_data = [
-        ("Alabama", "AL"), ("Alaska", "AK"), ("Arizona", "AZ"), ("Arkansas", "AR"), ("California", "CA"), ("Colorado", "CO"), ("Connecticut", "CT"), ("Delaware", "DE"),
+        ("Alabama", "AL"), ("Alaska", "AK"), ("Arizona", "AZ"), ("Arkansas", "AR"),
+        ("California", "CA"), ("Colorado", "CO"), ("Connecticut", "CT"), ("Delaware", "DE"),
         ("Florida", "FL"), ("Georgia", "GA"), ("Hawaii", "HI"), ("Idaho", "ID"),
         ("Illinois", "IL"), ("Indiana", "IN"), ("Iowa", "IA"), ("Kansas", "KS"),
         ("Kentucky", "KY"), ("Louisiana", "LA"), ("Maine", "ME"), ("Maryland", "MD"),
@@ -265,35 +418,31 @@ def o3_get_building_structures():
         ("Oregon", "OR"), ("Pennsylvania", "PA"), ("Rhode Island", "RI"), ("South Carolina", "SC"),
         ("South Dakota", "SD"), ("Tennessee", "TN"), ("Texas", "TX"), ("Utah", "UT"),
         ("Vermont", "VT"), ("Virginia", "VA"), ("Washington", "WA"), ("West Virginia", "WV"),
-        ("Wisconsin", "WI"), ("Wyoming", "WY")]
+        ("Wisconsin", "WI"), ("Wyoming", "WY")
+    ]
 
-    # read the shapefiles for all states
+    print("Reading and processing each state's GDB or CSV...")
     for state_name, stateid in states_data:
-        if state_name == "California":
-            continue
-        print(f"Reading building data for {state_name}")
+        print(f"→ {state_name} ({stateid})")
         filetype, gdf = read_building_data(stateid)
+
         if filetype == 'csv':
-            pass
-        elif filetype == 'gdb':
-            count_building_data = aggregate_building_counts(gdf)
-            df_pivot = pivot_building_data(count_building_data)
-            output_path = os.path.join(os.path.dirname(os.getcwd()), 'Data', 'building_data_csv', f"{stateid}_building_data.csv")
-            df_pivot.to_csv(output_path, index=False)
-            print(f"Saved building data for {state_name} to {output_path}")
+            print(" CSV exists. Skipping.")
+            continue
 
-    # concatenate all the csv files
+        # Process raw GDB into pivoted CSV
+        count_building_data = aggregate_building_counts(gdf)
+        df_pivot = pivot_building_data(count_building_data)
+
+        output_path = os.path.join(
+            os.getcwd(), "Data", "building_data_csv", f"{stateid}_building_data.csv"
+        )
+        df_pivot.to_csv(output_path, index=False)
+        print(f"  ✔ Saved building data to {output_path}")
+
+    print("Combining all state CSVs into nationwide dataset...")
     aggregate_building_data()
-
-    # delete state_building_data.csv 
-
-    return None
+    print("Aggregation complete.")
 
 
-if __name__ == "__main__":
-    # make the data path
-    building_data_csv, building_data_gdb, building_stock_data = make_data_path()
-        
-    # download and extract the building data
-    o3_get_building_structures()
 

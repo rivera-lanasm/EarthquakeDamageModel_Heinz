@@ -1,15 +1,23 @@
-import os
-import geopandas as gpd    #used for handling geospatial Census Tract data
-import pandas as pd
-from scipy.stats import norm    #used to compute earthquake damage probability
-import numpy as np
-import time
+"""
+Earthquake Damage Estimation Module
+
+This module estimates earthquake-induced building damage at the census tract level
+using fragility functions and peak ground acceleration (PGA) values.
+
+Main components:
+- `read_damage_functions`: Loads fragility curves for various building types and seismic code levels.
+- `build_damage_estimates`: Combines tract-level hazard intensity with building inventory
+  to estimate the probability and count of buildings experiencing slight, moderate, extensive,
+  and complete damage.
+
+Inputs:
+- A census-tract-level GeoDataFrame (`event_results`) with minimum PGA values and building counts
+- A CSV table of fragility function parameters (`DamageFunctionVariables.csv`)
+
+Outputs:
+- A GeoDataFrame with estimated damage counts per tract, disaggregated by severity
 
 
-# Step 1: Read in Data
-
-## 1.a Read Damage functions Data
-'''
 # The damage function variable table explained:
 
 Each row represents a combination of building type and building code
@@ -25,173 +33,137 @@ moderate damage can be expected at a PGA of 0.22.
 Those columns were followed by the beta columns (BetaSlight, BetaModerate, BetaExtensive...)
 Those are lognormal standard deviations (used to compute confidence intervals or model uncertainty).
 Small beta means this certain type of building has similar falling threshold (smaller uncertainty)
-'''
+
+"""
+
+
+import os
+import geopandas as gpd
+import pandas as pd
+from scipy.stats import norm
+import numpy as np
+import time
 
 def read_damage_functions():
-    #dmgfvars = r"..\Tables\DamageFunctionVariables.csv"
-    # parent_dir = os.path.dirname(os.getcwd())
-    dmgfvars = os.path.join(os.getcwd(), "Tables", "DamageFunctionVariables.csv")
-    dmgfvarsDF = pd.read_csv(dmgfvars)
-    dmgfvarsDF = dmgfvarsDF.drop('Unnamed: 0', axis=1)
-    list_bldgtypes = dmgfvarsDF["BLDG_TYPE"].unique()
-    
-    # Extract median cols, beta cols, and damage levels
-    # List of cols with emdian estimates
-    median_columns = [col for col in dmgfvarsDF.columns if col.lower().startswith('median')]
-
-    # list of beta columns
-    beta_columns = [col for col in dmgfvarsDF.columns if col.lower().startswith('beta')]
-
-    # Return dataframe, list of building types, names of columns with median estimates and names of columns w/ beta estimates
-    return dmgfvarsDF, list_bldgtypes,  median_columns, beta_columns
-
-
-## 1.b Read Event Data
-def read_event_data():
     """
-    Read event data from a GPKG file.
+    Load damage function variable table from CSV and extract column metadata.
+
+    Returns
+    -------
+    tuple
+        (DataFrame with all values, list of building types, list of median columns, list of beta columns)
     """
-    #TODO: o3 results might be switched to a .csv file so might need to update this accordingly!
+    path = os.path.join(os.getcwd(), "Tables", "DamageFunctionVariables.csv")
+    df = pd.read_csv(path).drop(columns=["Unnamed: 0"], errors="ignore")
 
-    # parent_dir = os.path.dirname(os.getcwd())
-    event_dir = os.path.join(os.getcwd())
+    median_columns = [col for col in df.columns if col.lower().startswith("median")]
+    beta_columns = [col for col in df.columns if col.lower().startswith("beta")]
+    building_types = df["BLDG_TYPE"].unique()
 
-    # Update with the actual path
-    GPKG_PATH = os.path.join(event_dir, "Data", eventid, "eqmodel_outputs.gpkg")
-
-    # Read the layer you want to inspect
-    # tract_shakemap_mmi, tract_shakemap_pga, tract_shakemap_pgv --> same idea
-    gdf = gpd.read_file(GPKG_PATH, layer="tract_shakemap_pga")
-
-    return gdf
+    return df, building_types, median_columns, beta_columns
 
 
 def build_damage_estimates(event_results):
+    """
+    Estimate earthquake building damage by combining PGA intensity with fragility curves.
 
-    '''
-    This function:
-    1. Reads in data ()'''
+    Parameters
+    ----------
+    event_results : GeoDataFrame
+        Contains census tract-level PGA values and building counts per structural type.
 
-    # Set UP:
-    # list of the levels - used for renaming variables 
+    Returns
+    -------
+    GeoDataFrame
+        A dataframe with total estimated building damage counts (slight, moderate, extensive, complete)
+        for each tract.
+    """
+    # Set up labels for each damage level
     pga_levels = ['slight', 'mod', 'ext', 'comp']
 
+    # Load damage function parameters
+    dmgfvarsDF, list_bldgtypes, median_columns, beta_columns = read_damage_functions()
 
-    # Read in Data
-    dmgfvarsDF, list_bldgtypes,  median_columns, beta_columns = read_damage_functions()
-    # read outut from o3
-    # event_results = read_event_data()
-
-    '''
-    Assumption 1:
-
-    Each building type (W1, W2 etc..) has multiple relevant rows for different seismic codes
-    When available, we're keeping the highest code (HC). If that's not available, we're keeping MC etc..
-    '''
-
-   # Define priority order for BUILDINGCO
+    # ----------------------------------------------------------------------
+    # Assumption 1: Use highest seismic code (e.g., HC > MC > LC > PC)
     priority_order = {"HC": 1, "MC": 2, "LC": 3, "PC": 4}
-
-    # Sort by BLDG_TYPE and priority of BUILDINGCO
     dmgfvarsDF["priority"] = dmgfvarsDF["BUILDINGCO"].map(priority_order)
     dmgfvarsDF = dmgfvarsDF.sort_values(["BLDG_TYPE", "priority"])
-
-    # Keep only the first occurrence of each BLDG_TYPE (i.e., highest priority)
     dmgfvars_hc = dmgfvarsDF.groupby("BLDG_TYPE").first().reset_index().drop(columns=["priority"])
 
-    '''
-    Adding missing columns from o3 results
-    '''
-    # In the absence of a TOTAL column i will assume that adding all the categories leads to a total
+    # ----------------------------------------------------------------------
+    # Estimate total number of buildings per tract
+    event_results['Total_Num_Building'] = (
+        event_results['OTHER_OTHER'] +
+        event_results['RESIDENTIAL_MULTI FAMILY'] +
+        event_results['RESIDENTIAL_OTHER'] +
+        event_results['RESIDENTIAL_SINGLE FAMILY']
+    )
 
-    event_results['Total_Num_Building'] = event_results['OTHER_OTHER'] + event_results['RESIDENTIAL_MULTI FAMILY'] + event_results['RESIDENTIAL_OTHER']+ event_results['RESIDENTIAL_SINGLE FAMILY']
+    # ----------------------------------------------------------------------
+    # TODO: Move structure-type × total-building multiplication upstream to o3
+    # TODO: Replace hardcoded structure list with inferred structure columns
+    # event_results[building_types] = event_results[building_types].multiply(event_results['Total_Num_Building'], axis=0)
 
-    # ALSO IN THE ABSENCE OF PROPER COLUMNS FROM O3 --> I will multiply these here
-    # Multiply total buildings by percentage columns to estimate counts
-    #TODO: These need to happen in o3 and CANNOT be harcoded
-    # building_types_o3 = ['W1', 'W2', 'S1L', 'S1M', 'S1H', 'S2L', 'S2M', 'S2H', 'S3', 'S4L', 'S4M', 'S4H', 'S5L', 'S5M', 'S5H', 'C1L', 'C1M', 'C1H', 'C2L', 'C2M', 'C2H', 'C3L', 'C3M', 'C3H', 'PC1', 'PC2L', 'PC2M', 'PC2H', 'RM1L', 'RM1M', 'RM2L', 'RM2M', 'RM2H', 'URML', 'URMM', 'MH']  # Get all the structure type columns
-    # event_results[building_types_o3] = event_results[building_types_o3].multiply(event_results['Total_Num_Building'], axis=0)
-
-    '''
-    Step 1: Calculate the probability of each type of damage per building structure
-    Goal: In this section, we would like to know what is the probability of each type of damage (slight, mod, compl, extensive) 
-    given the type of structure and the min PGA for that tract
-    '''
-
-    # Initialize a dictionary to store computed probabilities
+    # ----------------------------------------------------------------------
+    # Step 1: Compute probability of damage by structure and level
     prob_dict = {}
 
-    # Loop through each building type
-    # print("-----dmgfvars_hc")
-    # print(dmgfvars_hc)
-
-    #TODO: For future, add a check that all buildings in list_bldgtypes exist in o3 results. 
-    # Otherwise errors might occur
+    # TODO: Add check to ensure all building types exist in event_results before looping
     for bldg_type in list_bldgtypes:
-
-        # bldg_type = "{}_COUNT".format(bldg_type)
-
-        # Loop through each PGA level
         for i in range(len(pga_levels)):
+            # TODO: Replace positional access to beta/median columns with name-matching logic
+            beta = dmgfvars_hc.loc[dmgfvars_hc['BLDG_TYPE'] == bldg_type, beta_columns[i]].item()
+            PGA_median = dmgfvars_hc.loc[dmgfvars_hc['BLDG_TYPE'] == bldg_type, median_columns[i]].item()
 
-            # Extract Beta for the current building type
-            #TODO: this assumes that the list of betas is ranked by damage level. Update this to use ilike to ensure prooper betas are being passed
-            beta = dmgfvars_hc.loc[dmgfvars_hc['BLDG_TYPE'] == bldg_type, beta_columns[i]].item() 
-            # Extract the correct median PGA threshold
-            #TODO: this assumes that the list of MEDIANS is ranked by damage level. Update this to use ilike to ensure prooper betas are being passed
-            PGA_median = dmgfvars_hc.loc[dmgfvars_hc['BLDG_TYPE'] == bldg_type, median_columns[i]].item() 
+            prob_key = f'P_{pga_levels[i]}_{bldg_type}'
+            prob_dict[prob_key] = norm.cdf((1 / beta) * np.log(event_results['min_intensity'] / PGA_median))
 
-            # Compute probability for the current building type and damage level
-            prob_dict[f'P_{pga_levels[i].lower()}_{bldg_type}'] = norm.cdf((1 / beta) * np.log(event_results['min_intensity'] / PGA_median))
-
-    # Add all computed probabilities to once
     df = pd.concat([event_results, pd.DataFrame(prob_dict)], axis=1)
 
-    '''
-    STEP 2: Estimate cumulative  number of buildings with certain levels of damage
-    STEP 3: Get number of building for each category (subtract off the amount counted under other categories).
-    '''
-    # Initialize dictionaries to store computed values
-    num_slight, num_moderate, num_extensive, num_complete = {}, {}, {}, {} # cumulative counts
-    ex_slight, ex_moderate, ex_extensive, ex_complete = {}, {}, {}, {} # Exclusive counts (non-cumulative)
+    # ----------------------------------------------------------------------
+    # Step 2–3: Estimate exclusive damage counts
+    num_slight, num_moderate, num_extensive, num_complete = {}, {}, {}, {}
+    ex_slight, ex_moderate, ex_extensive, ex_complete = {}, {}, {}, {}
 
-    # Loop through each building type to compute damage estimates
     for bldg_type in list_bldgtypes:
-        bldg_type_col = "{}_COUNT".format(bldg_type)
-        # Cumulative damage estimates
-        num_slight[f'numSlight_{bldg_type}'] = df[bldg_type_col] * df[f'P_slight_{bldg_type}']
+        bldg_count_col = f"{bldg_type}_COUNT"
+
+        # Cumulative damage counts
+        num_slight[f'numSlight_{bldg_type}'] = df[bldg_count_col] * df[f'P_slight_{bldg_type}']
         num_moderate[f'numModerate_{bldg_type}'] = num_slight[f'numSlight_{bldg_type}'] * df[f'P_mod_{bldg_type}']
         num_extensive[f'numExtensive_{bldg_type}'] = num_moderate[f'numModerate_{bldg_type}'] * df[f'P_ext_{bldg_type}']
         num_complete[f'numComplete_{bldg_type}'] = num_extensive[f'numExtensive_{bldg_type}'] * df[f'P_comp_{bldg_type}']
 
-        # Exclusive damage estimates
+        # Exclusive counts (subtract from previous level)
         ex_slight[f'numSlight_{bldg_type}'] = num_slight[f'numSlight_{bldg_type}'] - num_moderate[f'numModerate_{bldg_type}']
         ex_moderate[f'numModerate_{bldg_type}'] = num_moderate[f'numModerate_{bldg_type}'] - num_extensive[f'numExtensive_{bldg_type}']
         ex_extensive[f'numExtensive_{bldg_type}'] = num_extensive[f'numExtensive_{bldg_type}'] - num_complete[f'numComplete_{bldg_type}']
         ex_complete[f'numComplete_{bldg_type}'] = num_complete[f'numComplete_{bldg_type}']
 
-    # Assign all computed columns to df at once
-    df = pd.concat([df, pd.DataFrame({**ex_slight, **ex_moderate, **ex_extensive, **ex_complete})], axis=1)
+    # Combine all exclusive counts into dataframe
+    df = pd.concat([df, pd.DataFrame({
+        **ex_slight,
+        **ex_moderate,
+        **ex_extensive,
+        **ex_complete
+    })], axis=1)
 
-    '''
-    STEP 4: Get the total number of buildings in each damage category 
-    '''
-
+    # ----------------------------------------------------------------------
+    # Step 4: Total damage count per tract
     df["Total_Num_Building_Slight"] = df.filter(like="numSlight").sum(axis=1)
     df["Total_Num_Building_Moderate"] = df.filter(like="numModerate").sum(axis=1)
     df["Total_Num_Building_Extensive"] = df.filter(like="numExtensive").sum(axis=1)
     df["Total_Num_Building_Complete"] = df.filter(like="numComplete").sum(axis=1)
 
-    df_final = df[['GEOID', 'max_intensity', 'min_intensity','mean_intensity', 'geometry',
-               'Total_Num_Building', 'Total_Num_Building_Slight', 'Total_Num_Building_Moderate', 
-               'Total_Num_Building_Extensive', 'Total_Num_Building_Complete']]
-    
+    # Final output selection
+    df_final = df[[
+        'GEOID', 'max_intensity', 'min_intensity', 'mean_intensity', 'geometry',
+        'Total_Num_Building',
+        'Total_Num_Building_Slight',
+        'Total_Num_Building_Moderate',
+        'Total_Num_Building_Extensive',
+        'Total_Num_Building_Complete'
+    ]]
+
     return df_final
-
-
-
-if __name__ == "__main__":
-    start_time = time.time()
-    main()
-    print('Damage Assessment Successfully Conducted')
-    print("--- {} seconds ---".format(time.time() - start_time))

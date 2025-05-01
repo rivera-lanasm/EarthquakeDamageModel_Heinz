@@ -16,6 +16,9 @@ from WorkingScripts.o5_svi_module import process_svi
 
 import os
 import pandas as pd
+import time
+
+DOWNLOAD_BUILDING_CENTROID = False
 
 def main(**config):
     """
@@ -53,7 +56,11 @@ def main(**config):
     # o3 - Download Building Centroid Data (Optional)
     # ================================================
     # download and extract the building data
-#     o3_get_building_structures()
+    if DOWNLOAD_BUILDING_CENTROID:
+        start_time = time.time()
+        o3_get_building_structures()
+        end_time = time.time()
+        print(f"Function took {end_time - start_time:.4f} seconds to run.")
 
     # ================================================
     # o3 - Building Centroids
@@ -69,11 +76,13 @@ def main(**config):
     # ================================================
     # o5 - Implement BHI
     # ================================================
-    df = process_bhi(o4out)
+    df = process_bhi(o4out, config["BLDNG_USABILITY"], config["UL_SEVERITY"])
+
     df["population"] = df["population"].astype(int)
     df["shelter_seeking_low"] = df["BHI_factor_low"]*df["population"]
     df["shelter_seeking_high"] = df["BHI_factor_high"]*df["population"]
-    cols = ["GEOID", "max_intensity", "population", "Total_Num_Building", "risk_level",
+    cols = ["GEOID", "max_intensity", "population", 
+            "Total_Num_Building", "risk_level", "geometry",
             "BHI_factor_low", "BHI_factor_high",
             "shelter_seeking_low", "shelter_seeking_high",
             "Total_Num_Building_Slight", "Total_Num_Building_Moderate", 
@@ -96,12 +105,30 @@ def main(**config):
     df["shelter_seeking_low"] = df["shelter_seeking_low"]*df["SVI_Value_Mapped"] 
     df["shelter_seeking_high"] = df["shelter_seeking_high"]*df["SVI_Value_Mapped"]
     df = df.drop(columns=["FIPS"])
-    df.to_csv("Data/final_output.csv", index=False)
+    
+    columns = [
+        "GEOID",
+        "max_intensity",
+        "population",
+        "Total_Num_Building",
+        "risk_level",
+        "BHI_factor_low",
+        "BHI_factor_high",
+        "shelter_seeking_low",
+        "shelter_seeking_high",
+        "Total_Num_Building_Slight",
+        "Total_Num_Building_Moderate",
+        "Total_Num_Building_Extensive",
+        "Total_Num_Building_Complete",
+        "SVI_Value",
+        "SVI_Value_Mapped"]
 
+    df = df[columns]
+    df.to_csv("Data/apr28_output_{}.csv".format(config["name"]), index=False)
+    print("lower bound")
     print(df["shelter_seeking_low"].sum())
+    print("upper bound")
     print(df["shelter_seeking_high"].sum())
-
-
 
 
 if __name__ == "__main__":
@@ -113,29 +140,28 @@ if __name__ == "__main__":
     """
 
     # USER INPUT
-#     config = {"event_id": "nc73821036"}
-
     config = {
-    "event_id": "nc72282711",
-    # TODO maps to "max_intensity", "min_intensity", "mean_intensity" in o4
-    "intensity_metric": "min",
-    "BLDNG_USABILITY": {
-            "Slight":{"FU":1.00,"PU":0.00,"NU":0.00},
-            "Moderate":{"FU":0.87,"PU":0.13,"NU":0.00},
-            "Extensive":{"FU":0.25,"PU":0.50,"NU":0.25},
-            "Complete":{"FU":0.00,"PU":0.02,"NU":0.98}
-            },
-    "UL_SEVERITY": {
-            "low": {"FU": [0.00,0.05], "PU": [0.05,0.10]},
-            "medium": {"FU": [0.00,0.10], "PU": [0.30,0.50]},
-            "high": {"FU": [0.10,0.30], "PU": [0.60,0.80]}
-            },
-    "SVI_THRESHOLD": [
-                      0.000, 
-                      0.025, 
-                      0.050
-                      ]
-    }
+        "event_id": "nc72282711",
+        "name": "NapaValley2014",
+        # TODO maps to "max_intensity", "min_intensity", "mean_intensity" in o4
+        "intensity_metric": "min",
+        "BLDNG_USABILITY": {
+                "Slight":{"FU":1.00,"PU":0.00,"NU":0.00},
+                "Moderate":{"FU":0.87,"PU":0.13,"NU":0.00},
+                "Extensive":{"FU":0.25,"PU":0.50,"NU":0.25},
+                "Complete":{"FU":0.00,"PU":0.02,"NU":0.98}
+                },
+        "UL_SEVERITY": {
+                "low": {"FU": [0.00,0.05], "PU": [0.05,0.10]},
+                "medium": {"FU": [0.00,0.10], "PU": [0.30,0.50]},
+                "high": {"FU": [0.10,0.30], "PU": [0.60,0.80]}
+                },
+        "SVI_THRESHOLD": [
+                        0.000,
+                        0.025,
+                        0.050
+                        ]
+        }
 
 
     main(**config)

@@ -3,142 +3,135 @@ import pandas as pd
 import numpy as np
 
 """
-- utility loss as a user parameter --> HOW DO WE PHRASE THIS
-    - low --> UL = .25
-    - medium --> UL = .5
-    - high --> UL = .75
+Building Habitability Index (BHI) Estimation Module
 
-Estimating Building Habitability
+This module estimates utility service disruption and habitability impacts
+at the census tract level based on post-earthquake building damage outcomes.
+
+Inputs:
+- `df`: GeoDataFrame with damage estimates from structural analysis
+- `bldng_usability`: Nested dict of functional (FU), partially usable (PU), and non-usable (NU)
+  building assumptions by damage level
+- `ul_severity`: Dictionary mapping 'low', 'medium', 'high' damage categories to
+  expected percent of utility loss for FU/PU categories
+
+Steps:
+1. Read damage results and census population data
+2. Compute damage distribution ratios and assign tract-level risk labels
+3. Estimate total FU / PU / NU buildings per tract
+4. Compute low/high BHI factors incorporating utility service loss
+5. Join population estimates to final dataframe
 """
-
-# these can be user parameters
-BLDNG_USABILITY = {
-"Slight":{"FU": 1, "PU": 0, "NU": 0},
-"Moderate":{"FU": 0.87, "PU": 0.13, "NU": 0},
-"Extensive":{"FU": 0.25, "PU": 0.5 , "NU": 0.25},
-"Complete":{"FU": 0, "PU": 0.02, "NU": 0.98}
-    }
-
-# these can be user parameters
-# UL_SEVERITY = {
-#     "power":{"low":[0,.2], "medium":.3, "high":.6},
-#     "water":{"low":.1, "medium":.2, "high":.4},
-#     }
-    # FU_NH --> 50 --> (10%, 10%, 5%) --> 10%
-UL_SEVERITY = {
-    "low": {"FU":[0,0.05], "PU": [0.05,0.1]}, # fully usable (0 - 5% non habitable), partially usable (5 - 10%) 
-    "medium":{"FU": [0,.1], "PU": [.3,.5]},
-    "high":{"FU": [.1,.3], "PU": [.6, .8]}
-    }
 
 
 def tract_damage_lvl(damage_dist):
     """
-    match building damage distribution to "low", "med", "high"
-    damage_dist -> {"Slight":0.25,
-                    "Moderate":0.25,
-                    "Extreme":0.25,
-                    "Complete":0.25}
-    https://docs.google.com/document/d/1Hk4eNn4lFpUYWKAIq8quMi7sOEfdJqGWpIZLmAes-Ec/edit?tab=t.0
-    
-    destroyed --> complete
-    major damage --> moderate, extreme
+    Assign a categorical risk level to a census tract based on its damage profile.
+
+    Parameters
+    ----------
+    damage_dist : dict
+        Dictionary containing keys 'perc_extreme', 'perc_complete'
+
+    Returns
+    -------
+    str
+        One of "low", "medium", or "high"
     """
     destroyed = damage_dist["perc_complete"]
-    major = damage_dist["perc_extreme"] # damage_dist["perc_moderate"] 
-    if (destroyed > 0.34) | (major > 0.34):
+    major = damage_dist["perc_extreme"]  # Can substitute or extend with moderate
+
+    if (destroyed > 0.34) or (major > 0.34):
         return "high"
-    elif ((destroyed <= 0.34) & (destroyed > 0.1)) | \
-        ((major <= 0.34) & (major > 0.15)):
+    elif (0.1 < destroyed <= 0.34) or (0.15 < major <= 0.34):
         return "medium"
     else:
         return "low"
 
 
-def process_bhi(df):
+def process_bhi(df, bldng_usability, ul_severity):
+    """
+    Compute BHI (Building Habitability Index) factors for each tract.
 
-    # ==================================
-    # step 0 - import population from census, join
-        # source: https://data.census.gov/table/DECENNIALPL2020.P1?t=Populations+and+People&g=040XX00US06$1400000
-    pop_data = pd.read_csv("Data/USDECENNIALPL2020.csv")
-    # print(pop_data.head())
-    pop_data = pop_data.iloc[1:].reset_index(drop=True)[["GEO_ID", "NAME", "P1_001N"]]
+    Parameters
+    ----------
+    df : GeoDataFrame
+        Contains tract-level damage estimates from prior modeling steps.
+    bldng_usability : dict
+        Structure usability assumptions by damage category.
+    ul_severity : dict
+        Utility loss severity by risk level, containing [low, high] ranges.
+
+    Returns
+    -------
+    GeoDataFrame
+        Updated dataframe with BHI factors and joined census population.
+    """
+    # Step 0: Load population data
+    pop_data = pd.read_csv("Data/census_pop/USDECENNIALPL2020.csv").iloc[1:].reset_index(drop=True)
+    pop_data = pop_data[["GEO_ID", "NAME", "P1_001N"]]
     pop_data["GEO_ID"] = pop_data["GEO_ID"].str.replace("1400000US", "", regex=False)
 
-    # ==================================
-    # step 1 - read results from o4
+    # Step 1: Compute damage distribution ratios
+    df["perc_slight"] = df["Total_Num_Building_Slight"] / df["Total_Num_Building"]
+    df["perc_moderate"] = df["Total_Num_Building_Moderate"] / df["Total_Num_Building"]
+    df["perc_extreme"] = df["Total_Num_Building_Extensive"] / df["Total_Num_Building"]
+    df["perc_complete"] = df["Total_Num_Building_Complete"] / df["Total_Num_Building"]
 
-    # get % buildings in each category 
-    df["perc_slight"] = df["Total_Num_Building_Slight"]/df["Total_Num_Building"]
-    df["perc_moderate"] = df["Total_Num_Building_Moderate"]/df["Total_Num_Building"]
-    df["perc_extreme"] = df["Total_Num_Building_Extensive"]/df["Total_Num_Building"]
-    df["perc_complete"] = df["Total_Num_Building_Complete"]/df["Total_Num_Building"]
+    df["risk_level"] = df[["perc_slight", "perc_moderate", "perc_extreme", "perc_complete"]].apply(
+        lambda row: tract_damage_lvl(row.to_dict()), axis=1
+    )
 
-    # Apply tract_damage_lvl --> utility services
-    df["risk_level"] = df[["perc_slight", "perc_moderate", 
-                           "perc_extreme", "perc_complete"]].apply(
-                                lambda row: tract_damage_lvl(row.to_dict()), axis=1)
+    # Step 2: Compute FU / PU / NU counts
+    df["num_FU"] = sum(df[f"Total_Num_Building_{level}"] * bldng_usability[level]["FU"] for level in bldng_usability)
+    df["num_PU"] = sum(df[f"Total_Num_Building_{level}"] * bldng_usability[level]["PU"] for level in bldng_usability)
+    df["num_NU"] = sum(df[f"Total_Num_Building_{level}"] * bldng_usability[level]["NU"] for level in bldng_usability)
 
-    # num_FU
-    df["num_FU"] = df["Total_Num_Building_Slight"].apply(lambda x: BLDNG_USABILITY["Slight"]["FU"]*x) +\
-                   df["Total_Num_Building_Moderate"].apply(lambda x: BLDNG_USABILITY["Moderate"]["FU"]*x) +\
-                   df["Total_Num_Building_Extensive"].apply(lambda x: BLDNG_USABILITY["Extensive"]["FU"]*x) +\
-                   df["Total_Num_Building_Complete"].apply(lambda x: BLDNG_USABILITY["Complete"]["FU"]*x)
-    # perc_FU_NH_low
-    df["perc_FU_NH_low"] = df.apply(lambda row: UL_SEVERITY[row['risk_level']]["FU"][0], axis=1)
-    df["perc_FU_NH_high"] = df.apply(lambda row: UL_SEVERITY[row['risk_level']]["FU"][1], axis=1)
+    # Step 3: Assign utility loss severity based on risk
+    df["perc_FU_NH_low"] = df["risk_level"].apply(lambda rl: ul_severity[rl]["FU"][0])
+    df["perc_FU_NH_high"] = df["risk_level"].apply(lambda rl: ul_severity[rl]["FU"][1])
+    df["perc_PU_NH_low"] = df["risk_level"].apply(lambda rl: ul_severity[rl]["PU"][0])
+    df["perc_PU_NH_high"] = df["risk_level"].apply(lambda rl: ul_severity[rl]["PU"][1])
 
-    # num_PU
-    df["num_PU"] = df["Total_Num_Building_Slight"].apply(lambda x: BLDNG_USABILITY["Slight"]["PU"]*x) +\
-                   df["Total_Num_Building_Moderate"].apply(lambda x: BLDNG_USABILITY["Moderate"]["PU"]*x) +\
-                   df["Total_Num_Building_Extensive"].apply(lambda x: BLDNG_USABILITY["Extensive"]["PU"]*x) +\
-                   df["Total_Num_Building_Complete"].apply(lambda x: BLDNG_USABILITY["Complete"]["PU"]*x)
+    # Step 4: Compute BHI factor (low/high) using utility impact
+    df["BHI_factor_low"] = (
+        df["num_FU"] * df["perc_FU_NH_low"] +
+        df["num_PU"] * df["perc_PU_NH_low"] +
+        df["num_NU"]
+    ) / df["Total_Num_Building"]
 
-    # perc_PU_NH
-    df["perc_PU_NH_low"] = df.apply(lambda row: UL_SEVERITY[row['risk_level']]["PU"][0], axis=1)
-    df["perc_PU_NH_high"] = df.apply(lambda row: UL_SEVERITY[row['risk_level']]["PU"][1], axis=1)
+    df["BHI_factor_high"] = (
+        df["num_FU"] * df["perc_FU_NH_high"] +
+        df["num_PU"] * df["perc_PU_NH_high"] +
+        df["num_NU"]
+    ) / df["Total_Num_Building"]
 
-    # num_NU
-    df["num_NU"] = df["Total_Num_Building_Slight"].apply(lambda x: BLDNG_USABILITY["Slight"]["NU"]*x) +\
-                   df["Total_Num_Building_Moderate"].apply(lambda x: BLDNG_USABILITY["Moderate"]["NU"]*x) +\
-                   df["Total_Num_Building_Extensive"].apply(lambda x: BLDNG_USABILITY["Extensive"]["NU"]*x) +\
-                   df["Total_Num_Building_Complete"].apply(lambda x: BLDNG_USABILITY["Complete"]["NU"]*x)
-
-    # BHI_factor = (num_FU*perc_FU_NH + num_PU*perc_PU_NH + num_NU) / N
-    df["BHI_factor_low"] = (df["num_FU"]*df["perc_FU_NH_low"] + df["num_PU"]*df["perc_PU_NH_low"] + df["num_NU"])/df["Total_Num_Building"]
-    df["BHI_factor_high"] = (df["num_FU"]*df["perc_FU_NH_high"] + df["num_PU"]*df["perc_PU_NH_high"] + df["num_NU"])/df["Total_Num_Building"]
-
-    # create/apply residential factor
-    resi_df = pd.read_csv("Data/building_data_csv/aggregated_building_data.csv")    
+    # Step 5: Adjust for residential share of total buildings
+    resi_df = pd.read_csv("Data/building_data_csv/aggregated_building_data.csv")
     resi_df["CENSUSCODE"] = resi_df["CENSUSCODE"].astype(int)
     df["GEOID"] = df["GEOID"].astype(int)
-    df = df.merge(resi_df, left_on = "GEOID", right_on="CENSUSCODE")
-    df["total_resi_count"] = df['RESIDENTIAL_MULTI FAMILY'] + \
-                             df['RESIDENTIAL_OTHER'] + \
-                             df['RESIDENTIAL_SINGLE FAMILY']
+
+    df = df.merge(resi_df, left_on="GEOID", right_on="CENSUSCODE")
+    df["total_resi_count"] = (
+        df["RESIDENTIAL_MULTI FAMILY"] +
+        df["RESIDENTIAL_OTHER"] +
+        df["RESIDENTIAL_SINGLE FAMILY"]
+    )
     df["resi_prop"] = df["total_resi_count"] / df["TOTAL_BUILDING_COUNT"]
-    df["BHI_factor_low"] = df["BHI_factor_low"]*df["resi_prop"]
-    df["BHI_factor_high"] = df["BHI_factor_high"]*df["resi_prop"]
+    df["BHI_factor_low"] *= df["resi_prop"]
+    df["BHI_factor_high"] *= df["resi_prop"]
 
-    # join census population data
-    final_col_set = ["GEOID", "max_intensity", "resi_prop",
-                     "Total_Num_Building",
-                     "Total_Num_Building_Slight", "Total_Num_Building_Moderate", 
-                     "Total_Num_Building_Extensive", "Total_Num_Building_Complete",
-                     "risk_level", 
-                     "num_FU", "perc_FU_NH_low", "perc_FU_NH_high",
-                     "num_PU", "perc_PU_NH_low", "perc_PU_NH_high",
-                     "num_NU",
-                     "BHI_factor_low", "BHI_factor_high"]
-
-    df = df[final_col_set].sort_values(by=["max_intensity"], ascending=False).reset_index(drop=True)
-
-    # merge pop data
-    pop_data = pop_data[["GEO_ID", "P1_001N"]]
+    # Step 6: Merge population and finalize columns
     pop_data["GEO_ID"] = pop_data["GEO_ID"].astype(int)
     df = df.merge(pop_data[["GEO_ID", "P1_001N"]], how="inner", left_on="GEOID", right_on="GEO_ID")
-    df = df.drop(columns=["GEO_ID"])
-    df = df.rename(columns={"P1_001N":"population"})
+    df = df.rename(columns={"P1_001N": "population"}).drop(columns=["GEO_ID"])
 
-    return df
-
+    final_cols = [
+        "GEOID", "max_intensity", "resi_prop", "geometry",
+        "Total_Num_Building", "Total_Num_Building_Slight", "Total_Num_Building_Moderate",
+        "Total_Num_Building_Extensive", "Total_Num_Building_Complete",
+        "risk_level", "num_FU", "perc_FU_NH_low", "perc_FU_NH_high",
+        "num_PU", "perc_PU_NH_low", "perc_PU_NH_high",
+        "num_NU", "BHI_factor_low", "BHI_factor_high", "population"
+    ]
+    return df[final_cols].sort_values(by="max_intensity", ascending=False).reset_index(drop=True)

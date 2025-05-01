@@ -1,56 +1,53 @@
-'''
-SVI Module
-'''
+"""
+Social Vulnerability Index (SVI) Module
+
+This module reads and processes CDC SVI 2022 data to assign mapped SVI vulnerability levels
+to census tracts. These mapped values can be used to estimate shelter-seeking behavior
+or risk exposure based on social vulnerability.
+
+Key functions:
+- `read_svi_data`: Load raw SVI data (FIPS + composite vulnerability score)
+- `configure_svi_map`: Generate a function to map raw SVI score to a discrete vulnerability level
+- `process_svi`: Apply mapping to create a cleaned SVI dataframe for merging
+
+Expected columns in input CSV:
+- FIPS: tract identifier
+- RPL_THEMES: overall percentile rank of social vulnerability (0 to 1)
+"""
 
 import os
 import geopandas as gpd
 import pandas as pd
 
-#TODO: This might need to be updated if we decide to save our pipeline results in a csv
-def read_event_data(eventid):
-    """
-    Read event data from a GPKG file.
-    """
-    parent_dir = os.path.dirname(os.getcwd())
-    event_dir = os.path.join(parent_dir, 'ShakeMaps', eventid)
-    # Update with the actual path
-    GPKG_PATH = os.path.join(event_dir, "eqmodel_outputs.gpkg")
-    # Read the layer you want to inspect
-    gdf = gpd.read_file(GPKG_PATH, layer="tract_shakemap_pga")
-
-    return gdf
-
-
 def read_svi_data():
-    # parent_dir = os.path.dirname(os.getcwd())
-    svi_dir = "Data/SVI/SVI_2022_US.csv"# os.path.join(parent_dir, "Data", "SVI", "SVI_2022_US.csv")
-    svi = pd.read_csv(svi_dir)
+    """
+    Read the CDC SVI 2022 CSV and return the relevant columns.
 
+    Returns
+    -------
+    DataFrame
+        Contains FIPS code and composite SVI score (RPL_THEMES).
+    """
+    svi_path = "Data/SVI/SVI_2022_US.csv"
+    svi = pd.read_csv(svi_path)
     return svi
 
-# def process_svi(event_data, svi_data):
-
-#     #extract only the data we need from svi
-#     svi_data = svi_data[['FIPS', 'RPL_THEMES']].rename(columns={'RPL_THEMES': "SVI_Value"})
-
-#     # Left merge event event_data and svi_data
-#     # only keep tracts that are in event data
-    
-#     # NOTE / TODO: this might not currently work because of differences in column types.
-#     # I'm waiting for us to finalize how event_data is stored before fixing this
-#     #event_data_w_svi = pd.merge(event_data, svi_data, how = 'left', left_on='GEOID', right_on='FIPS')
-
-#     return svi_data
 
 def configure_svi_map(svi_factor_set):
-    def map_range(val):
-        """
-        if you have relatively high svi...30% of people living in potentially non habitable will seek shelter potentially.
+    """
+    Return a function that maps SVI values (0–1) to shelter-seeking assumptions.
 
-            questions:
-                1) under what SVI can we basically map the value to 0 --> .4 (above what value are you vulnerable?)
-                2) for socially vuln, what proportion might seek shelter
-        """
+    Parameters
+    ----------
+    svi_factor_set : list of float
+        Three values representing proportions for [low, medium, high] SVI levels.
+
+    Returns
+    -------
+    function
+        A function mapping an SVI score to its assigned shelter-seeking proportion.
+    """
+    def map_range(val):
         if 0 <= val < 0.5:
             return svi_factor_set[0]
         elif 0.5 <= val < 0.8:
@@ -58,21 +55,26 @@ def configure_svi_map(svi_factor_set):
         elif 0.8 <= val <= 1.0:
             return svi_factor_set[2]
         else:
-            return None 
+            return None
     return map_range
 
+
 def process_svi(svi_factor_set):
-    
-    #event_data = read_event_data(eventid)
+    """
+    Load and process SVI data, applying a mapped shelter-seeking vulnerability level.
+
+    Parameters
+    ----------
+    svi_factor_set : list of float
+        Proportions to apply for [low, medium, high] SVI bins.
+
+    Returns
+    -------
+    DataFrame
+        DataFrame with FIPS, raw SVI value, and mapped vulnerability factor.
+    """
     svi_data = read_svi_data()
-    svi_data = svi_data[['FIPS', 'RPL_THEMES']].rename(columns={'RPL_THEMES': "SVI_Value"})
-    #final = process_svi(event_data, svi_data = svi)
+    svi_data = svi_data[["FIPS", "RPL_THEMES"]].rename(columns={"RPL_THEMES": "SVI_Value"})
     map_range = configure_svi_map(svi_factor_set)
     svi_data["SVI_Value_Mapped"] = svi_data["SVI_Value"].apply(map_range)
-
-    #TODO: potentially save this in folder directly - wait to hear back from team on desired final output
     return svi_data
-
-# if __name__ == "__main__":
-#     df = main()
-#     print(df)
