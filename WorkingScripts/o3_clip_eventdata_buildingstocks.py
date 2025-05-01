@@ -63,90 +63,75 @@ def read_building_count_by_tract():
     return df
 
 
-# # INTERSECT WITH BUILDING STOCKS
-
 def get_building_stock_data():
     """
-    2. Check if the csv file exists
-    3. If not, create the folder aand copy the csv file
-    4. If exists, read the csv file
+    Load building type proportion data per tract from preprocessed file.
+
+    Returns
+    -------
+    DataFrame
+        Percent share of each building type + total building count per tract.
     """
+    path = os.path.join(os.getcwd(), 'Tables', 'Building_Percentages_Per_Tract_ALLSTATES.csv')
 
-    parent_dir = os.path.dirname(os.getcwd())
-    # check if the folder exists
-    CSV_PATH = os.path.join(os.getcwd(), 'Tables', 'Building_Percentages_Per_Tract_ALLSTATES.csv')
-    
-    # Change data types
-    cols = ['W1', 'W2', 'S1L', 'S1M', 'S1H', 'S2L', 'S2M',
-            'S2H', 'S3', 'S4L', 'S4M', 'S4H', 'S5L', 'S5M', 'S5H', 'C1L', 'C1M',
-            'C1H', 'C2L', 'C2M', 'C2H', 'C3L', 'C3M', 'C3H', 'PC1', 'PC2L', 'PC2M',
-            'PC2H', 'RM1L', 'RM1M', 'RM2L', 'RM2M', 'RM2H', 'URML', 'URMM', 'MH',
-            'Total']
-    # create a library for data type change
-    dtypes = {}
-    for col in cols:
-        dtypes[col] = 'float64'
+    cols = [
+        'W1', 'W2', 'S1L', 'S1M', 'S1H', 'S2L', 'S2M', 'S2H', 'S3', 'S4L', 'S4M', 'S4H',
+        'S5L', 'S5M', 'S5H', 'C1L', 'C1M', 'C1H', 'C2L', 'C2M', 'C2H', 'C3L', 'C3M', 'C3H',
+        'PC1', 'PC2L', 'PC2M', 'PC2H', 'RM1L', 'RM1M', 'RM2L', 'RM2M', 'RM2H', 'URML', 'URMM', 'MH', 'Total'
+    ]
+    dtypes = {col: 'float64' for col in cols}
     dtypes['Tract'] = 'str'
-    
-    if os.path.exists(CSV_PATH):
-        print(f"Building stock data exists at {CSV_PATH}")
-        gdf = pd.read_csv(CSV_PATH, dtype=dtypes)
-        gdf = gdf.drop(columns=['Unnamed: 0'])
-        gdf['CENSUSCODE'] = np.where(gdf['Tract'].str.len() == 11, gdf['Tract'], "0"+gdf['Tract'])
 
-    else:
-        print(f"Building stock data does not exist at {CSV_PATH}")
-        raise ValueError
-    
-    return gdf
+    if not os.path.exists(path):
+        raise ValueError(f"Building stock data not found at {path}")
+
+    df = pd.read_csv(path, dtype=dtypes).drop(columns=["Unnamed: 0"])
+    df["CENSUSCODE"] = np.where(df["Tract"].str.len() == 11, df["Tract"], "0" + df["Tract"])
+    return df
 
 
-# JOIN COUNT BUILDING DATA AND BUILDING STOCK DATA
 
-# take df_pivot and building_stock and merge them
 def count_building_proportion(building_count, building_stock):
-    # merge the dataframes
-    merged_df = pd.merge(building_count, building_stock, on='CENSUSCODE', how='left')
-    merged_df.drop(columns=['Tract'], axis=1, inplace=True)
-    merged_df.drop(columns=['STATE_ID'], axis=1, inplace=True)
-    #merged_df.drop(columns=['field_1'], axis=1, inplace=True)
-    merged_df.bfill(inplace=True)
+    """
+    Merge total building counts with building stock percentages to estimate structural counts.
 
-    # calculate the number of each building type
-    cols = ['W1', 'W2', 'S1L', 'S1M', 'S1H', 'S2L', 'S2M',
-       'S2H', 'S3', 'S4L', 'S4M', 'S4H', 'S5L', 'S5M', 'S5H', 'C1L', 'C1M',
-       'C1H', 'C2L', 'C2M', 'C2H', 'C3L', 'C3M', 'C3H', 'PC1', 'PC2L', 'PC2M',
-       'PC2H', 'RM1L', 'RM1M', 'RM2L', 'RM2M', 'RM2H', 'URML', 'URMM', 'MH']
-    for col in cols:
-        merged_df[f"{col}_COUNT"] = round(merged_df[col]/merged_df['Total'] * merged_df['TOTAL_BUILDING_COUNT'])
-    
-    # drop the proportion columns
-    merged_df.drop(columns=cols, axis=1, inplace=True)
-    merged_df.drop(columns=['Total'], axis=1, inplace=True)
-    
-    return merged_df
+    Parameters
+    ----------
+    building_count : DataFrame
+        Total buildings per tract.
+    building_stock : DataFrame
+        Percentages of building types per tract.
+
+    Returns
+    -------
+    DataFrame
+        Merged and estimated structural counts per tract.
+    """
+    df = pd.merge(building_count, building_stock, on='CENSUSCODE', how='left')
+    df.drop(columns=['Tract', 'STATE_ID'], inplace=True)
+    df.bfill(inplace=True)
+
+    bldg_types = [col for col in building_stock.columns if col not in ['Tract', 'CENSUSCODE', 'Total']]
+    for col in bldg_types:
+        df[f"{col}_COUNT"] = round(df[col] / df["Total"] * df["TOTAL_BUILDING_COUNT"])
+
+    return df.drop(columns=bldg_types + ["Total"])
 
 
-# SAVE OUTPUT TO EVENT DIR
 
-# Function to save GeoDataFrame to GeoPackage (Overwriting mode)
 def save_to_geopackage(gdf, eventid, layer_name):
     """
-    Saves a GeoDataFrame to the GeoPackage, overwriting the existing layer.
+    Save GeoDataFrame to a GeoPackage under the given event directory and layer name.
 
-    Args:
-        gdf (GeoDataFrame): The GeoDataFrame to save.
-        layer_name (str): The name of the layer in the GeoPackage.
+    Parameters
+    ----------
+    gdf : GeoDataFrame
+    eventid : str
+    layer_name : str
     """
-    parent_dir = os.path.dirname(os.getcwd())
-    event_dir = os.path.join(parent_dir, 'ShakeMaps', eventid)
-
-    # Update with the actual path
-    GPKG_PATH = os.path.join(event_dir, "eqmodel_outputs.gpkg")
-
-
-    gdf.to_file(GPKG_PATH, layer=layer_name, driver="GPKG", mode="w")
-    print(f"Saved {layer_name} to {GPKG_PATH} (overwritten).")
+    gpkg_path = os.path.join(os.path.dirname(os.getcwd()), 'ShakeMaps', eventid, "eqmodel_outputs.gpkg")
+    gdf.to_file(gpkg_path, layer=layer_name, driver="GPKG", mode="w")
+    print(f"Saved {layer_name} to {gpkg_path} (overwritten).")
 
 
 def building_clip_analysis(eventid):
@@ -159,29 +144,18 @@ def building_clip_analysis(eventid):
     # 2. Read the building count data
     # print("2. Reading building count data...")
     building_count = read_building_count_by_tract()
-    # print(building_count)
 
     # 3. Read the building stock data
-    # print("3. Reading building stock data...")
     building_stock = get_building_stock_data()
-    # print(building_stock)
 
     # 4. Merge the building count and building stock data
-    # print("4. Merging building count and building stock data...")
     df_output = count_building_proportion(building_count, building_stock)
 
     # 5. Merge the event data and the merged building count and building stock data
-    # print("5. Merging event data with building data...")
     final_output = pd.merge(eventdata, df_output, left_on='GEOID', right_on='CENSUSCODE', how='left')
     final_output.ffill(inplace=True)
     final_output.drop(columns=['CENSUSCODE'], axis=1, inplace=True)
     
-    # 6. Save the final output to the GeoPackage
-    # print("6. Saving final output to GeoPackage...")
-    # layer_name = "tract_shakemap_pga"
-    # print(final_output)
-    # save_to_geopackage(final_output, layer_name, eventid)
-    # print(final_output.columns)
     print(f"Building clip analysis completed for event ID: {eventid}")
     
     return final_output
