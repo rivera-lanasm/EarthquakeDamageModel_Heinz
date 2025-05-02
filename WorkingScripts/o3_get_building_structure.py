@@ -159,7 +159,7 @@ def gdb_path_by_state(stateid):
     ValueError
         If no folder matching the state ID is found.
     """
-    parent_dir = os.path.dirname(os.getcwd())
+    parent_dir = os.getcwd()
     building_data_dir = os.path.join(parent_dir, "Data", "building_data_gdb")
 
     # Find folder that ends with the state ID
@@ -201,7 +201,7 @@ def read_building_data(stateid):
     csv_dir = os.path.join("Data", "building_data_csv")
     csv_path = os.path.join(csv_dir, f"{stateid}_building_data.csv")
     if os.path.exists(csv_path):
-        print(f"Aggregated csv file found for {stateid}")
+        # print(f"Aggregated csv file found for {stateid}")
         return 'csv', None
     else:
         print(f"Reading {building_data_directory}")
@@ -387,62 +387,104 @@ def aggregate_building_data():
 
 def o3_get_building_structures():
     """
-    Download, extract, and process building data for all U.S. states.
+    Download, extract, process, and aggregate building footprint data for all U.S. states and territories.
 
-    Uses USA_Structures to fetch links, downloads ZIPs, processes GDBs,
-    aggregates building counts per census tract, and saves state-level CSVs.
+    This function performs the full pipeline to prepare building-level structural data from
+    the USA_Structures GeoPlatform. It includes:
+    - Scraping available state/territory ZIP links
+    - Downloading and extracting GDB files for each area (if not already processed)
+    - Reading building geometry and occupancy attributes
+    - Aggregating building counts per census tract
+    - Saving per-state CSVs
+    - Merging all state files into a single nationwide CSV (`aggregated_building_data.csv`)
+
+    if a state's processed CSV already exists, it will skip reprocessing that state. 
+    Intermediate GDB and CSV files are saved under the `Data/` directory.
+
+    Returns
+    -------
+    None
+        Outputs are written to disk.
+
+    Example
+    -------
+    >>> from WorkingScripts.o3_building_module import o3_get_building_structures
+    >>> o3_get_building_structures()
+
+    # Outputs:
+    # - Data/building_data_csv/{STATE_ID}_building_data.csv for each state/territory
+    # - Data/building_data_gdb/{STATE}_Structures.gdb folders (raw GDBs)
+    # - Data/building_data_csv/aggregated_building_data.csv (final merged file)
     """
-    print("Fetching state download links...")
+    # Full mapping of area names to abbreviations
+    STATE_ABBREVIATIONS = {
+        "Alabama": "AL", "Alaska": "AK", "American Samoa": "AS", "Arizona": "AZ",
+        "Arkansas": "AR", "California": "CA", "Colorado": "CO", "Connecticut": "CT",
+        "Delaware": "DE", "D.C.": "DC", "District of Columbia": "DC", "Guam": "GU",
+        "Florida": "FL", "Georgia": "GA", "Hawaii": "HI", "Idaho": "ID",
+        "Illinois": "IL", "Indiana": "IN", "Iowa": "IA", "Kansas": "KS",
+        "Kentucky": "KY", "Louisiana": "LA", "Maine": "ME", "Maryland": "MD",
+        "Massachusetts": "MA", "Michigan": "MI", "Minnesota": "MN", "Missouri": "MO",
+        "Mississippi": "MS", "Montana": "MT", "Nebraska": "NE", "Nevada": "NV",
+        "New Hampshire": "NH", "New Jersey": "NJ", "New Mexico": "NM", "New York": "NY",
+        "North Carolina": "NC", "North Dakota": "ND", "Northern Mariana Islands": "MP",
+        "Ohio": "OH", "Oklahoma": "OK", "Oregon": "OR", "Pennsylvania": "PA",
+        "Puerto Rico": "PR", "Rhode Island": "RI", "South Carolina": "SC",
+        "South Dakota": "SD", "Tennessee": "TN", "Texas": "TX", "Utah": "UT",
+        "Vermont": "VT", "Virgin Islands": "VI", "Virginia": "VA", "Washington": "WA",
+        "West Virginia": "WV", "Wisconsin": "WI", "Wyoming": "WY"
+    }
+
+    # print("Fetching state/territory download links...")
     state_links = fetch_state_links()
 
-    print("Downloading ZIPs for 50 states...")
-    i = 1
-    for state in state_links:
-        if i <= 50:
-            download_and_extract_zip(state, state_links)
-            i += 1
-        else:
-            break
+    csv_dir = os.path.join(os.getcwd(), "Data", "building_data_csv")
+    os.makedirs(csv_dir, exist_ok=True)
 
-    # Hardcoded list of 50 U.S. states (with abbreviations)
-    states_data = [
-        ("Alabama", "AL"), ("Alaska", "AK"), ("Arizona", "AZ"), ("Arkansas", "AR"),
-        ("California", "CA"), ("Colorado", "CO"), ("Connecticut", "CT"), ("Delaware", "DE"),
-        ("Florida", "FL"), ("Georgia", "GA"), ("Hawaii", "HI"), ("Idaho", "ID"),
-        ("Illinois", "IL"), ("Indiana", "IN"), ("Iowa", "IA"), ("Kansas", "KS"),
-        ("Kentucky", "KY"), ("Louisiana", "LA"), ("Maine", "ME"), ("Maryland", "MD"),
-        ("Massachusetts", "MA"), ("Michigan", "MI"), ("Minnesota", "MN"), ("Mississippi", "MS"),
-        ("Missouri", "MO"), ("Montana", "MT"), ("Nebraska", "NE"), ("Nevada", "NV"),
-        ("New Hampshire", "NH"), ("New Jersey", "NJ"), ("New Mexico", "NM"), ("New York", "NY"),
-        ("North Carolina", "NC"), ("North Dakota", "ND"), ("Ohio", "OH"), ("Oklahoma", "OK"),
-        ("Oregon", "OR"), ("Pennsylvania", "PA"), ("Rhode Island", "RI"), ("South Carolina", "SC"),
-        ("South Dakota", "SD"), ("Tennessee", "TN"), ("Texas", "TX"), ("Utah", "UT"),
-        ("Vermont", "VT"), ("Virginia", "VA"), ("Washington", "WA"), ("West Virginia", "WV"),
-        ("Wisconsin", "WI"), ("Wyoming", "WY")
-    ]
+    # print("Checking and processing available states...")
+    for state_name, url in state_links.items():
+        stateid = STATE_ABBREVIATIONS.get(state_name)
+        if not stateid:
+            # print(f"Skipping unknown or unmapped area: {state_name}")
+            continue
 
-    print("Reading and processing each state's GDB or CSV...")
-    for state_name, stateid in states_data:
-        print(f"→ {state_name} ({stateid})")
+        csv_path = os.path.join(csv_dir, f"{stateid}_building_data.csv")
+        if os.path.exists(csv_path):
+            # print(f"{state_name} ({stateid}): CSV already exists, skipping.")
+            continue
+
+        try:
+            download_and_extract_zip(state_name, state_links)
+        except Exception as e:
+            # print(f"{state_name}: Failed to download or extract. Error: {e}")
+            raise ValueError
+
+    # print("Reading and processing GDBs...")
+    for state_name in state_links.keys():
+        stateid = STATE_ABBREVIATIONS.get(state_name)
+        if not stateid:
+            continue
+
+        csv_path = os.path.join(csv_dir, f"{stateid}_building_data.csv")
+        if os.path.exists(csv_path):
+            # print(f"{state_name} ({stateid}): CSV already exists, skipping.")
+            continue
+
+        # print(f"Processing {state_name} ({stateid})...")
         filetype, gdf = read_building_data(stateid)
 
         if filetype == 'csv':
-            print(" CSV exists. Skipping.")
+            # print("CSV exists. Skipping.")
             continue
 
-        # Process raw GDB into pivoted CSV
         count_building_data = aggregate_building_counts(gdf)
         df_pivot = pivot_building_data(count_building_data)
 
-        output_path = os.path.join(
-            os.getcwd(), "Data", "building_data_csv", f"{stateid}_building_data.csv"
-        )
+        output_path = os.path.join(csv_dir, f"{stateid}_building_data.csv")
         df_pivot.to_csv(output_path, index=False)
-        print(f"  ✔ Saved building data to {output_path}")
+        # print(f"Saved: {output_path}")
 
     print("Combining all state CSVs into nationwide dataset...")
     aggregate_building_data()
     print("Aggregation complete.")
-
-
 

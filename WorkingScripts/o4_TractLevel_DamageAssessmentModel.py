@@ -63,7 +63,7 @@ def read_damage_functions():
     return df, building_types, median_columns, beta_columns
 
 
-def build_damage_estimates(event_results):
+def build_damage_estimates(event_results, intensity_metric):
     """
     Estimate earthquake building damage by combining PGA intensity with fragility curves.
 
@@ -100,16 +100,12 @@ def build_damage_estimates(event_results):
         event_results['RESIDENTIAL_SINGLE FAMILY']
     )
 
-    # ----------------------------------------------------------------------
-    # TODO: Move structure-type × total-building multiplication upstream to o3
-    # TODO: Replace hardcoded structure list with inferred structure columns
-    # event_results[building_types] = event_results[building_types].multiply(event_results['Total_Num_Building'], axis=0)
-
-    # ----------------------------------------------------------------------
     # Step 1: Compute probability of damage by structure and level
     prob_dict = {}
 
-    # TODO: Add check to ensure all building types exist in event_results before looping
+    # Add check to ensure all building types exist in event_results before looping
+    intensity_metric = "{}_intensity".format(intensity_metric)
+    print("Using {}".format(intensity_metric))
     for bldg_type in list_bldgtypes:
         for i in range(len(pga_levels)):
             # TODO: Replace positional access to beta/median columns with name-matching logic
@@ -117,7 +113,8 @@ def build_damage_estimates(event_results):
             PGA_median = dmgfvars_hc.loc[dmgfvars_hc['BLDG_TYPE'] == bldg_type, median_columns[i]].item()
 
             prob_key = f'P_{pga_levels[i]}_{bldg_type}'
-            prob_dict[prob_key] = norm.cdf((1 / beta) * np.log(event_results['min_intensity'] / PGA_median))
+            prob_dict[prob_key] = norm.cdf((1 / beta) * np.log(event_results[intensity_metric] / PGA_median))
+            #prob_dict[prob_key] = norm.cdf((1 / beta) * np.log(event_results['min_intensity'] / PGA_median))
 
     df = pd.concat([event_results, pd.DataFrame(prob_dict)], axis=1)
 

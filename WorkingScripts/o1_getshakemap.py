@@ -34,6 +34,11 @@ def fetch_earthquake_data(feed_url):
     --Raises
     ValueError
         If the request to the USGS feed fails or returns an error status code.
+
+    Example
+    -------
+    >>> feed_url = FEEDURL.format("us7000dflf")
+    >>> event_json = fetch_earthquake_data(feed_url)
     """
     try:
         response = requests.get(feed_url, timeout=10)  # 10s timeout to avoid hangs
@@ -58,6 +63,12 @@ def retrieve_event_data(event_json):
     --Raises
     ValueError
         If the ShakeMap product is not available in the event data.
+
+        
+    Example
+    -------   
+    >>> event = retrieve_event_data(event_json)
+    >>> print(event["magnitude"], event["shakemap_url"])
     """
     event_id = event_json["id"]
     magnitude = event_json["properties"]["mag"]
@@ -104,6 +115,11 @@ def download_and_extract_shakemap(event):
     --Raises
     ValueError
         If the download or ZIP extraction fails.
+
+    Example
+    -------
+    >>> event_folder = download_and_extract_shakemap(event)
+    >>> print("Files extracted to:", event_folder)
     """
     event_id = event["eventid"]
     shakemap_url = event["shakemap_url"]

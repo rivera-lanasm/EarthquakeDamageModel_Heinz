@@ -18,6 +18,7 @@ Data Sources:
 import os
 import requests
 import geopandas as gpd
+from pyogrio.errors import DataSourceError 
 
 def get_shakemap_files(eventdir):
     """
@@ -182,10 +183,26 @@ def shakemap_into_census_geo(eventdir):
     --Returns
     None
         All outputs are written to disk.
+
+    Example
+    -------
+    >>> from WorkingScripts.o2_census_intersect import shakemap_into_census_geo
+    >>> shakemap_into_census_geo(eventdir = "./Data/Shakemap/us70006vll")
+
+    # Outputs:
+    # - eqmodel_outputs.gpkg
+    #     - 'shakemap_tractclip_pga': ShakeMap geometries clipped to census tracts
+    #     - 'tract_shakemap_pga': max, min, and mean PGA values per tract
     """
     # Load ShakeMap shapefiles (only PGA used here)
     _, _, pga_path = get_shakemap_files(eventdir)
-    pga_gdf = gpd.read_file(pga_path)
+    try:
+        pga_gdf = gpd.read_file(pga_path)
+    except DataSourceError:
+        print("\n\n\n ============= USER MESSAGE ========================")
+        print(f"Failed to read shapefile at {pga_path}: file not found - please check that shakemap is available on USGS")
+        print("=====================================\n\n\n")
+        raise ValueError
 
     # Load Census Tract geometries
     data_dir = os.path.join(os.getcwd(), "Data")

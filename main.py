@@ -18,6 +18,7 @@ import os
 import pandas as pd
 import time
 
+# Set to true if user wishes to rebuild building centroid data
 DOWNLOAD_BUILDING_CENTROID = False
 
 def main(**config):
@@ -48,7 +49,7 @@ def main(**config):
     # ================================================
     # o2 - Overlay US Census Tract Data onto ShakeMap
     # ================================================
-    # clip census and shakemaps, min pga per census tract
+    # clip census and shakemaps, min,max,mean pga per census tract
     event_dir = os.path.join(os.getcwd(), 'Data', 'Shakemap', EVENT_ID)
     shakemap_into_census_geo(event_dir)
 
@@ -71,7 +72,7 @@ def main(**config):
     # ========================================================
     # o4 - Apply Damage Functions using Building Code Data
     # ========================================================
-    o4out = build_damage_estimates(event_results)
+    o4out = build_damage_estimates(event_results, config["intensity_metric"])
 
     # ================================================
     # o5 - Implement BHI
@@ -142,7 +143,7 @@ if __name__ == "__main__":
     # USER INPUT
     config = {
         "event_id": "nc72282711",
-        "name": "NapaValley2014",
+        "name": "2014NapaValley",
         # TODO maps to "max_intensity", "min_intensity", "mean_intensity" in o4
         "intensity_metric": "min",
         "BLDNG_USABILITY": {
@@ -165,16 +166,6 @@ if __name__ == "__main__":
 
 
     main(**config)
-
-
-    #TODO 1) code cleanup
-        # make sure no unecessary data remains after running code
-        # code to check for data before downloading 
-        # comment functions 
-        # add paramters vs hardcoded values
-    #TODO 1) zip file
-        # document steps for unzipping files in google drive
-    #TODO 1) colab integration
         
 
 

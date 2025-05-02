@@ -135,14 +135,44 @@ def save_to_geopackage(gdf, eventid, layer_name):
 
 
 def building_clip_analysis(eventid):
+    """
+    Merge earthquake ShakeMap intensity data with building stock and count estimates by tract.
+
+    This function performs the final preprocessing step before structural damage modeling. It:
+    1. Loads tract-level PGA values from a GeoPackage for the specified earthquake event.
+    2. Loads per-tract building count data and building stock composition.
+    3. Estimates structural counts for each building type in each tract.
+    4. Joins building estimates with ShakeMap intensity values.
+
+    The resulting GeoDataFrame includes:
+    - Tract-level earthquake intensity (min, max, mean PGA)
+    - Estimated building counts by structural type (W1, S1L, etc.)
+    - Total buildings per tract
+
+    Parameters
+    ----------
+    eventid : str
+        USGS event ID (used to locate event folder and GeoPackage).
+
+    Returns
+    -------
+    GeoDataFrame
+        Combined earthquake-building dataset ready for damage estimation.
+
+    Example
+    -------
+    >>> from WorkingScripts.o6_merge_building_shakemap import building_clip_analysis
+    >>> df = building_clip_analysis("us7000kuf4")
+    >>> df.columns
+    Index(['GEOID', 'max_intensity', 'min_intensity', 'mean_intensity', 'geometry',
+           'TOTAL_BUILDING_COUNT', 'W1_COUNT', 'S1L_COUNT', ..., 'MH_COUNT'],
+           dtype='object')
+    """
     # overall work flow
     # 1. Read the event data
-    # print(f"1. Reading event data for event ID: {eventid}")
     eventdata = read_event_data(eventid)
-    # print(eventdata)
 
     # 2. Read the building count data
-    # print("2. Reading building count data...")
     building_count = read_building_count_by_tract()
 
     # 3. Read the building stock data
